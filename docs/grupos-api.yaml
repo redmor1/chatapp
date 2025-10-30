@@ -1,0 +1,349 @@
+# Especifica la versión exacta de OpenAPI.
+openapi: 3.1.9
+
+# 1. Información básica de tu API
+info:
+  title: API de Grupos
+  description: Maneja la creación, gestión y membresía de grupos de chat.
+  version: 1.0.0
+  contact:
+    name: Equipo de Desarrollo
+    email: dev@ejemplo.com
+
+# 2. Servidores
+servers:
+  - url: /api/v1/grupo
+    description: Servidor de desarrollo
+
+# 3. Tags
+# Define los tags usados en 'paths' para agrupar endpoints en la UI de Swagger.
+tags:
+  - name: Grupo
+    description: Operaciones sobre el recurso principal del grupo.
+  - name: Miembro
+    description: Operaciones para gestionar los miembros de un grupo.
+
+# 4. Componentes Reutilizables
+components:
+  # --- Esquemas (DTOs) ---
+  schemas:
+    # Schema estándar para respuestas de error
+    ErrorResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          description: Un URI de referencia al tipo de problema.
+          example: "https://ejemplo.com/errores/validacion"
+        titulo:
+          type: string
+          description: Un resumen legible del problema.
+          example: "Error de validación"
+        estado:
+          type: integer
+          description: El código de estado HTTP.
+          example: 400
+        detalle:
+          type: string
+          description: Una explicación detallada del error.
+          example: "El campo 'nombre' no puede estar vacío."
+
+    # DTO que representa a un usuario (datos de Usuarios.API)
+    UsuarioResumen:
+      type: object
+      description: Representación resumida de un usuario.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: El ID del usuario (de Keycloak/Usuarios.API).
+        nombre:
+          type: string
+          example: "Usuario Falso 1"
+
+    # DTO para la respuesta de un grupo detallado
+    GrupoDetalle:
+      type: object
+      description: Representación detallada de un grupo y sus miembros.
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+          example: "Proyecto Final"
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        miembros:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsuarioResumen"
+
+    # DTO para crear un grupo
+    CrearGrupoRequest:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          description: "Nombre del nuevo grupo."
+          example: "Grupo de Programación IV"
+        miembrosIniciales:
+          type: array
+          description: "Lista de IDs de usuarios para agregar al grupo."
+          items:
+            type: string
+            format: uuid
+          example: ["11111111-1111-1111-1111-111111111111"]
+
+    # DTO para actualizar un grupo
+    ActualizarGrupoRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+          description: "El nuevo nombre del grupo."
+          example: "Grupo TUP 2025"
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: "La nueva URL del avatar del grupo."
+
+    # DTO para agregar un miembro
+    AgregarMiembroRequest:
+      type: object
+      required:
+        - usuarioId
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+          description: "ID del usuario a agregar."
+          example: "22222222-2222-2222-2222-222222222222"
+
+  # --- Esquemas de Seguridad ---
+  securitySchemes:
+    keycloakAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Token JWT provisto por el servidor de identidad (Keycloak)."
+
+# 5. Seguridad Global
+# Aplica 'keycloakAuth' a TODOS los endpoints de esta API.
+security:
+  - keycloakAuth: []
+
+# 6. Paths (Endpoints)
+# Todos los paths son relativos a la URL del servidor: /api/v1/grupo
+paths:
+  # --- Path: / ---
+  /:
+    get:
+      tags:
+        - Grupo
+      summary: "Listar los grupos del usuario actual."
+      operationId: ListarGruposUsuario
+      responses:
+        "200":
+          description: "Lista de grupos a los que pertenece el usuario."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GrupoDetalle"
+        "401":
+          description: "No autorizado."
+
+    post:
+      tags:
+        - Grupo
+      summary: "Crear un nuevo grupo."
+      operationId: CrearGrupo
+      requestBody:
+        description: Datos para el nuevo grupo.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearGrupoRequest"
+      responses:
+        "201":
+          description: "Grupo creado exitosamente."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrupoDetalle"
+        "400":
+          description: "Solicitud inválida (ej. nombre faltante)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "No autorizado."
+
+  # --- Path: /{grupoId} ---
+  /{grupoId}:
+    parameters:
+      - name: grupoId
+        in: path
+        required: true
+        description: El ID del grupo.
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Grupo
+      summary: "Obtener detalles de un grupo específico."
+      operationId: ObtenerGrupoPorId
+      responses:
+        "200":
+          description: "Detalles del grupo."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrupoDetalle"
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres miembro)."
+        "404":
+          description: "Grupo no encontrado."
+
+    patch:
+      tags:
+        - Grupo
+      summary: "Actualizar un grupo (ej. cambiar nombre)."
+      operationId: ActualizarGrupo
+      requestBody:
+        description: Campos a actualizar en el grupo.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActualizarGrupoRequest"
+      responses:
+        "200":
+          description: "Grupo actualizado."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrupoDetalle"
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres admin del grupo)."
+        "404":
+          description: "Grupo no encontrado."
+
+    delete:
+      tags:
+        - Grupo
+      summary: "Eliminar un grupo."
+      operationId: EliminarGrupo
+      responses:
+        "204":
+          description: "Grupo eliminado exitosamente (Sin contenido)."
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres admin del grupo)."
+        "404":
+          description: "Grupo no encontrado."
+
+  # --- Path: /{grupoId}/miembros ---
+  /{grupoId}/miembros:
+    parameters:
+      - name: grupoId
+        in: path
+        required: true
+        description: El ID del grupo.
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Miembro
+      summary: "Listar los miembros de un grupo."
+      operationId: ListarMiembrosGrupo
+      responses:
+        "200":
+          description: "Lista de miembros del grupo."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsuarioResumen"
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres miembro)."
+        "404":
+          description: "Grupo no encontrado."
+
+    post:
+      tags:
+        - Miembro
+      summary: "Agregar un miembro a un grupo."
+      operationId: AgregarMiembro
+      requestBody:
+        description: El usuario a agregar.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgregarMiembroRequest"
+      responses:
+        "204":
+          description: "Miembro agregado (Sin contenido)."
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres admin del grupo)."
+        "404":
+          description: "Grupo o usuario no encontrado."
+        "409":
+          description: "Conflicto (el usuario ya es miembro)."
+
+  # --- Path: /{grupoId}/miembros/{usuarioId} ---
+  /{grupoId}/miembros/{usuarioId}:
+    parameters:
+      - name: grupoId
+        in: path
+        required: true
+        description: El ID del grupo.
+        schema:
+          type: string
+          format: uuid
+      - name: usuarioId
+        in: path
+        required: true
+        description: El ID del usuario a quitar.
+        schema:
+          type: string
+          format: uuid
+
+    delete:
+      tags:
+        - Miembro
+      summary: "Quitar un miembro de un grupo."
+      operationId: QuitarMiembro
+      responses:
+        "204":
+          description: "Miembro quitado (Sin contenido)."
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres admin del grupo)."
+        "404":
+          description: "Grupo o miembro no encontrado."
