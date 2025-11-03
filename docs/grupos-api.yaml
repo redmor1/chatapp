@@ -49,20 +49,20 @@ components:
           example: "El campo 'nombre' no puede estar vacío."
 
     # DTO que representa a un usuario (datos de Usuarios.API)
-    UsuarioResumen:
+    UsuarioResumenResponse:
       type: object
       description: Representación resumida de un usuario.
       properties:
         id:
           type: string
-          format: uuid
-          description: El ID del usuario (de Keycloak/Usuarios.API).
+          description: El ID del usuario (de Auth0/Usuarios.API). Formato Auth0, ej. "auth0|123456789"
+          example: "auth0|507f1f77bcf86cd799439011"
         nombre:
           type: string
           example: "Usuario Falso 1"
 
     # DTO para la respuesta de un grupo detallado
-    GrupoDetalle:
+    GrupoDetalleResponse:
       type: object
       description: Representación detallada de un grupo y sus miembros.
       properties:
@@ -79,7 +79,7 @@ components:
         miembros:
           type: array
           items:
-            $ref: "#/components/schemas/UsuarioResumen"
+            $ref: "#/components/schemas/UsuarioResumenResponse"
 
     # DTO para crear un grupo
     CrearGrupoRequest:
@@ -96,8 +96,7 @@ components:
           description: "Lista de IDs de usuarios para agregar al grupo."
           items:
             type: string
-            format: uuid
-          example: ["11111111-1111-1111-1111-111111111111"]
+          example: ["auth0|507f1f77bcf86cd799439011"]
 
     # DTO para actualizar un grupo
     ActualizarGrupoRequest:
@@ -121,9 +120,8 @@ components:
       properties:
         usuarioId:
           type: string
-          format: uuid
-          description: "ID del usuario a agregar."
-          example: "22222222-2222-2222-2222-222222222222"
+          description: "ID del usuario a agregar (formato Auth0)"
+          example: "auth0|507f1f77bcf86cd799439011"
 
   # --- Esquemas de Seguridad ---
   securitySchemes:
@@ -156,7 +154,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/GrupoDetalle"
+                  $ref: "#/components/schemas/GrupoDetalleResponse"
         "401":
           description: "No autorizado."
 
@@ -178,7 +176,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GrupoDetalle"
+                $ref: "#/components/schemas/GrupoDetalleResponse"
         "400":
           description: "Solicitud inválida (ej. nombre faltante)."
           content:
@@ -210,7 +208,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GrupoDetalle"
+                $ref: "#/components/schemas/GrupoDetalleResponse"
         "401":
           description: "No autorizado."
         "403":
@@ -236,7 +234,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GrupoDetalle"
+                $ref: "#/components/schemas/GrupoDetalleResponse"
         "401":
           description: "No autorizado."
         "403":
@@ -283,7 +281,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/UsuarioResumen"
+                  $ref: "#/components/schemas/UsuarioResumenResponse"
         "401":
           description: "No autorizado."
         "403":
