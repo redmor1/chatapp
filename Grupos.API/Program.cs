@@ -1,4 +1,5 @@
 using Grupos.API.Data;
+using Grupos.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,9 @@ builder.Services.AddDbContext<GruposDbContext>(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options => {     options.Authority = builder.Configuration["Auth0:Authority"];
     options.Audience = builder.Configuration["Auth0:Audience"];
 });
+
+// Registrar servicios
+builder.Services.AddScoped<IGrupoService, GrupoService>();
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();

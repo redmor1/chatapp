@@ -2,7 +2,7 @@
 {
     public record GrupoDetalleResponse
 (
-        string Id,
+        Guid Id,
         string Nombre,
         string? AvatarUrl,
         List<UsuarioResumenResponse> Miembros
