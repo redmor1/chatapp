@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Grupos.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b35546d0758bd2e06a7bc8e0265d17b5e0c9cb6")]
 [assembly: System.Reflection.AssemblyProductAttribute("Grupos.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Grupos.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
