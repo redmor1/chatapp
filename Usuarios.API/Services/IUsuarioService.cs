@@ -4,6 +4,13 @@ namespace Usuarios.API.Services
 {
     public interface IUsuarioService
     {
-        Task<UsuarioPerfilResponse> GetPerfilPorIdAsync(string usuarioActualId);
+
+        Task<UsuarioPerfilResponse?> GetPerfilPorIdAsync(string usuarioId);
+
+        Task<UsuarioPerfilResponse?> UpdatePerfilAsync(string usuarioId, ActualizarPerfilRequest request);
+
+        Task<List<UsuarioPerfilResponse>> GetUsuariosBatchAsync(List<string> usuarioIds);
+
+        Task SyncUsuarioAsync(SyncUsuarioRequest request);
     }
 }

@@ -16,9 +16,9 @@ namespace Grupos.API.Controllers
     {
 
         private readonly ILogger<GruposController> _logger;
-        private readonly GrupoService _grupoService;
+        private readonly IGrupoService _grupoService;
 
-        public GruposController(ILogger<GruposController> logger, GrupoService grupoService)
+        public GruposController(ILogger<GruposController> logger, IGrupoService grupoService)
         {
             _logger = logger;
             _grupoService = grupoService;

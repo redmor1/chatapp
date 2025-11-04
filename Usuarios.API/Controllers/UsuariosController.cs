@@ -12,14 +12,20 @@ namespace Usuarios.API.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly ILogger<UsuariosController> _logger;
-        private readonly UsuarioService _usuarioService;
+        private readonly IUsuarioService _usuarioService;
+        private readonly IConfiguration _configuration;
 
-        public UsuariosController(ILogger<UsuariosController> logger, UsuarioService usuarioService)
+        public UsuariosController(
+            ILogger<UsuariosController> logger, 
+            IUsuarioService usuarioService,
+            IConfiguration configuration)
         {
             _logger = logger;
             _usuarioService = usuarioService;
+            _configuration = configuration;
         }
 
+        // GET /api/v1/usuario/me
         [HttpGet("me")]
         public async Task<ActionResult<UsuarioPerfilResponse>> GetMiPerfil()
         {
@@ -29,19 +35,86 @@ namespace Usuarios.API.Controllers
                 return Unauthorized();
             }
 
-            // Llamar al servicio
             var usuarioDto = await _usuarioService.GetPerfilPorIdAsync(usuarioActualId);
 
-            
             if (usuarioDto == null)
             {
-                // El servicio devolviÛ null, asÌ que respondemos con 404
-                return NotFound("Perfil de usuario no encontrado. Pendiente de sincronizaciÛn.");
+                return NotFound(new ErrorResponse(
+                    "https://api.chatapp.com/errores/usuario-no-encontrado",
+                    "Usuario no encontrado",
+                    "404",
+                    "Perfil de usuario no encontrado en la base de datos local. Pendiente de sincronizaci√≥n."
+                ));
             }
 
-            // Si todo est· bien, devuelve el DTO
             return Ok(usuarioDto);
         }
 
+        // PATCH /api/v1/usuario/me
+        [HttpPatch("me")]
+        public async Task<ActionResult<UsuarioPerfilResponse>> UpdateMiPerfil([FromBody] ActualizarPerfilRequest request)
+        {
+            var usuarioActualId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(usuarioActualId))
+            {
+                return Unauthorized();
+            }
+
+            var usuarioDto = await _usuarioService.UpdatePerfilAsync(usuarioActualId, request);
+
+            if (usuarioDto == null)
+            {
+                return NotFound(new ErrorResponse(
+                    "https://api.chatapp.com/errores/usuario-no-encontrado",
+                    "Usuario no encontrado",
+                    "404",
+                    "No se pudo actualizar el perfil porque el usuario no existe."
+                ));
+            }
+
+            return Ok(usuarioDto);
+        }
+
+        // POST /api/v1/usuario/batch
+        [HttpPost("batch")]
+        public async Task<ActionResult<List<UsuarioPerfilResponse>>> GetUsuariosBatch([FromBody] BatchIdsRequest request)
+        {
+            if (request.Ids == null || request.Ids.Count == 0)
+            {
+                return BadRequest(new ErrorResponse(
+                    "https://api.chatapp.com/errores/validacion",
+                    "Error de validaci√≥n",
+                    "400",
+                    "La lista de IDs no puede estar vac√≠a."
+                ));
+            }
+
+            var usuarios = await _usuarioService.GetUsuariosBatchAsync(request.Ids);
+            return Ok(usuarios);
+        }
+
+        // POST /api/v1/usuario/sync
+        [HttpPost("sync")]
+        [AllowAnonymous] // No requiere JWT, usa API Key
+        public async Task<IActionResult> SyncUsuarioDesdeAuth0(
+            [FromBody] SyncUsuarioRequest request, 
+            [FromHeader(Name = "X-Sync-Key")] string? syncKey)
+        {
+            // Validar API Key desde appsettings
+            var expectedKey = _configuration["Auth0:SyncKey"];
+            
+            if (string.IsNullOrEmpty(syncKey) || syncKey != expectedKey)
+            {
+                return Unauthorized(new ErrorResponse(
+                    "https://api.chatapp.com/errores/no-autorizado",
+                    "API Key inv√°lida",
+                    "401",
+                    "La API Key proporcionada es inv√°lida o faltante."
+                ));
+            }
+
+            await _usuarioService.SyncUsuarioAsync(request);
+            return Ok(new { message = "Usuario sincronizado exitosamente" });
+        }
     }
 }
