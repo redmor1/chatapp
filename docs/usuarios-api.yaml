@@ -1,0 +1,229 @@
+# 1. Versión de la especificación
+openapi: 3.1.9
+
+# 2. Información de la API
+info:
+  title: API de Usuarios
+  description: Maneja los perfiles de usuario, la sincronización con Auth0 y sirve datos a otros microservicios.
+  version: 1.0.0
+  contact:
+    name: Equipo de Desarrollo
+    email: dev@ejemplo.com
+
+# 3. Servidores
+servers:
+  - url: /api/v1/usuarios
+    description: Servidor de desarrollo
+
+# 4. Tags (Agrupadores)
+tags:
+  - name: Perfil
+    description: Operaciones para el usuario actualmente autenticado (mi perfil).
+  - name: Usuarios
+    description: Operaciones de servicio a servicio para obtener datos de usuarios.
+  - name: Sincronización
+    description: Endpoint interno para la sincronización desde Auth0.
+
+# 5. Componentes Reutilizables
+components:
+  # --- Esquemas (DTOs) ---
+  schemas:
+    # El DTO principal para un perfil de usuario
+    UsuarioPerfilResponse:
+      type: object
+      description: Representación pública del perfil de un usuario.
+      properties:
+        id:
+          type: string
+          description: El ID de usuario (el 'sub' de Auth0).
+          example: "auth0|6539f1xxxxxxxxxx"
+        nombre:
+          type: string
+          example: "Juan Pérez"
+        email:
+          type: string
+          format: email
+          example: "juan.perez@ejemplo.com"
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://.../avatar.png"
+
+    # DTO para actualizar un perfil
+    ActualizarPerfilRequest:
+      type: object
+      description: Campos que un usuario puede actualizar de su perfil.
+      properties:
+        nombre:
+          type: string
+          example: "Juancito"
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://.../nuevo-avatar.png"
+
+    # DTO para el endpoint 'batch'
+    BatchIdsRequest:
+      type: object
+      description: Una lista de IDs de usuario para consultar.
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+          example: ["auth0|123...", "google-oauth2|456..."]
+
+    # DTO para el endpoint 'sync' (usado por el Auth0 Action)
+    SyncUsuarioRequest:
+      type: object
+      description: Datos completos del perfil enviados desde el hook de Auth0.
+      required: [id, nombre, email]
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    # DTO estándar para errores
+    ErrorResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          description: Un URI de referencia al tipo de problema.
+        titulo:
+          type: string
+          description: Un resumen legible del problema.
+        estado:
+          type: integer
+          description: El código de estado HTTP.
+        detalle:
+          type: string
+          description: Una explicación detallada del error.
+
+  # --- Esquemas de Seguridad ---
+  securitySchemes:
+    # Esquema 1: Para usuarios autenticados (Frontend -> API)
+    auth0Jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Token JWT provisto por Auth0 para un usuario."
+
+    # Esquema 2: Para el hook de Auth0 (Auth0 -> API)
+    apiKeySync:
+      type: apiKey
+      in: header
+      name: X-Sync-Key
+      description: "API Key secreta para autorizar el webhook de sincronización de Auth0."
+
+# 6. Seguridad Global
+# Por defecto, TODOS los endpoints requieren un JWT de usuario.
+security:
+  - auth0Jwt: []
+
+# 7. Paths (Endpoints)
+paths:
+  # --- Perfil del usuario actual ---
+  /me:
+    get:
+      tags:
+        - Perfil
+      summary: "Obtener mi perfil"
+      description: Devuelve el perfil del usuario actualmente autenticado (basado en su token).
+      operationId: GetMiPerfil
+      responses:
+        "200":
+          description: "Perfil del usuario."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioPerfilResponse"
+        "401":
+          description: "No autorizado."
+        "404":
+          description: "Perfil no encontrado en la base de datos local."
+
+    patch:
+      tags:
+        - Perfil
+      summary: "Actualizar mi perfil"
+      description: Actualiza el 'nombre' o 'avatarUrl' del usuario actual. (Sincroniza con Auth0 y la BD local).
+      operationId: UpdateMiPerfil
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActualizarPerfilRequest"
+      responses:
+        "200":
+          description: "Perfil actualizado exitosamente."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioPerfilResponse"
+        "400":
+          description: "Solicitud inválida."
+        "401":
+          description: "No autorizado."
+
+  # --- Endpoint para otros servicios (Grupos.API, Mensajes.API) ---
+  /batch:
+    post:
+      tags:
+        - Usuarios
+      summary: "Obtener perfiles por lote (batch)"
+      description: "Recibe una lista de IDs de usuario y devuelve sus perfiles. Usado por otros microservicios."
+      operationId: GetUsuariosBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchIdsRequest"
+      responses:
+        "200":
+          description: "Una lista de perfiles (puede estar vacía si no se encuentra ninguno)."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsuarioPerfilResponse"
+        "401":
+          description: "No autorizado."
+
+  # --- Endpoint para el Auth0 Action ---
+  /sync:
+    post:
+      tags:
+        - Sincronización
+      summary: "Sincronizar usuario (Webhook de Auth0)"
+      description: "Endpoint interno llamado por el Auth0 Action (hook post-login) para crear o actualizar un perfil de usuario en la BD local."
+      operationId: SyncUsuarioDesdeAuth0
+      # Anulamos la seguridad global (JWT) y usamos la API Key
+      security:
+        - apiKeySync: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncUsuarioRequest"
+      responses:
+        "200":
+          description: "Usuario sincronizado (creado o actualizado)."
+        "400":
+          description: "Datos inválidos."
+        "401":
+          description: "API Key inválida o faltante."

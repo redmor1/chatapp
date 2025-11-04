@@ -33,7 +33,7 @@ namespace Grupos.API.Controllers
             var usuarioActualId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
 
-            _logger.LogInformation("Usuario {Id} está pidiendo sus grupos", usuarioActualId);
+            _logger.LogInformation("Usuario {Id} esta pidiendo sus grupos", usuarioActualId);
 
             if (string.IsNullOrEmpty(usuarioActualId))
             {
@@ -51,7 +51,7 @@ namespace Grupos.API.Controllers
         {
             // Obtener ID del usuario actual desde el token
             var usuarioActualId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("Usuario {Id} está creando un nuevo grupo", usuarioActualId);
+            _logger.LogInformation("Usuario {Id} esta creando un nuevo grupo", usuarioActualId);
             if (string.IsNullOrEmpty(usuarioActualId))
             {
                 return Unauthorized();

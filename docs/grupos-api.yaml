@@ -60,6 +60,11 @@ components:
         nombre:
           type: string
           example: "Usuario Falso 1"
+        avatarUrl:
+          nullable: true
+          format: uri
+          description: "URL del avatar del usuario."
+          example: "https://example.com/avatars/user1.png"
 
     # DTO para la respuesta de un grupo detallado
     GrupoDetalleResponse:
@@ -125,16 +130,16 @@ components:
 
   # --- Esquemas de Seguridad ---
   securitySchemes:
-    keycloakAuth:
+    auth0Jwt:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: "Token JWT provisto por el servidor de identidad (Keycloak)."
+      description: "Token JWT provisto por Auth0."
 
 # 5. Seguridad Global
-# Aplica 'keycloakAuth' a TODOS los endpoints de esta API.
+# Aplica 'auth0Jwt' a TODOS los endpoints de esta API.
 security:
-  - keycloakAuth: []
+  - auth0Jwt: []
 
 # 6. Paths (Endpoints)
 # Todos los paths son relativos a la URL del servidor: /api/v1/grupo
@@ -326,10 +331,10 @@ paths:
       - name: usuarioId
         in: path
         required: true
-        description: El ID del usuario a quitar.
+        description: El ID del usuario a quitar (formato Auth0).
         schema:
           type: string
-          format: uuid
+        example: "auth0|507f1f77bcf86cd799439011"
 
     delete:
       tags:

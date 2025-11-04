@@ -1,0 +1,357 @@
+#TODO: Revisar consistencia con otros docs y si esta bien hecho
+
+# 1. Versión de la especificación
+openapi: 3.1.9
+
+# 2. Información de la API
+info:
+  title: API de Mensajes
+  description: Maneja el historial de mensajes y los acuses de lectura (visto).
+  version: 1.0.0
+  contact:
+    name: Equipo de Desarrollo
+    email: dev@ejemplo.com
+
+# 3. Servidores
+servers:
+  - url: /api/v1
+    description: Servidor de desarrollo
+
+# 4. Tags (Agrupadores)
+tags:
+  - name: Mensajes
+    description: Operaciones para enviar, obtener el historial de mensajes.
+  - name: Lecturas
+    description: Operaciones para marcar como leído y ver acuses de lectura (visto).
+  - name: SignalR
+    description: Eventos en tiempo real mediante WebSocket (SignalR).
+
+# 5. Componentes Reutilizables
+components:
+  # --- Esquemas (DTOs) ---
+  schemas:
+    # DTO para un único mensaje.
+    # Nota: No devolvemos el perfil del autor (nombre/avatar).
+    # El frontend llamará a Usuarios.API:/batch con los 'autorId'
+    # para obtener esa información.
+    MensajeResponse:
+      type: object
+      description: Representación de un único mensaje.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "ID del mensaje."
+        conversacionId:
+          type: string
+          description: "ID de la conversación (un ID de grupo o un ID de usuario)."
+        autorId:
+          type: string
+          description: "ID del usuario que envió el mensaje."
+          example: "auth0|6539f1..."
+        contenido:
+          type: string
+          example: "Hola, ¿cómo estás?"
+        estado:
+          type: string
+          enum: [enviado, entregado, leído]
+          description: "Estado del mensaje (enviado, entregado, leído)."
+          example: "leído"
+        creadoEn:
+          type: string
+          format: date-time
+          description: "Timestamp de creación en la BD (UTC)."
+
+    # DTO para crear un mensaje
+    CrearMensajeRequest:
+      type: object
+      required:
+        - contenido
+      description: Datos para enviar un nuevo mensaje.
+      properties:
+        contenido:
+          type: string
+          description: "El contenido del mensaje."
+          example: "Hola, ¿cómo estás?"
+          minLength: 1
+          maxLength: 5000
+
+    # DTO para la respuesta paginada
+    MensajesPaginadosResponse:
+      type: object
+      properties:
+        mensajes:
+          type: array
+          items:
+            $ref: "#/components/schemas/MensajeResponse"
+        # Usamos paginación basada en cursor (el ID del último mensaje)
+        # para un rendimiento óptimo en un chat.
+        nextCursor:
+          type: string
+          format: uuid
+          nullable: true
+          description: "El ID del mensaje a partir del cual pedir la siguiente página (más antiguos)."
+          example: "a1b2c3d4-..."
+
+    # DTO para marcar un mensaje como leído
+    MarcarComoLeidoRequest:
+      type: object
+      description: Datos para marcar un mensaje como leído.
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: "Timestamp de cuándo el usuario leyó el mensaje (UTC)."
+
+    # DTO para un acuse de lectura
+    AcuseLecturaResponse:
+      type: object
+      description: "Representa a un usuario que leyó un mensaje."
+      properties:
+        usuarioId:
+          type: string
+          example: "auth0|6539f1..."
+        nombreUsuario:
+          type: string
+          example: "Juan Pérez"
+        leidoEn:
+          type: string
+          format: date-time
+          description: "Timestamp de cuándo el usuario leyó el mensaje."
+
+    # DTO estándar para errores
+    ErrorResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+        titulo:
+          type: string
+        estado:
+          type: integer
+        detalle:
+          type: string
+
+    # --- DOCUMENTACIÓN DE EVENTOS SIGNALR ---
+    # Los eventos SignalR se distribuyen en tiempo real mediante WebSocket.
+    # Conexión: ws://[servidor]/api/v1/hubs/mensajes
+    #
+    # EVENTOS DEL SERVIDOR AL CLIENTE:
+    # 1. messageSent
+    #    - Se dispara cuando un usuario envía un mensaje.
+    #    - Datos: { mensajeId, conversacionId, autorId, contenido, creadoEn, estado: "enviado" }
+    #    - Receptores: todos los usuarios en la conversación.
+    #
+    # 2. messageDelivered
+    #    - Se dispara cuando el mensaje llega al servidor y se persiste en BD.
+    #    - Datos: { mensajeId, conversacionId, estado: "entregado" }
+    #    - Receptores: el autor del mensaje.
+    #
+    # 3. userTyping
+    #    - Se dispara cuando un usuario está escribiendo.
+    #    - Datos: { conversacionId, usuarioId, isTyping: true/false }
+    #    - Receptores: todos los usuarios en la conversación excepto el que escribe.
+    #
+    # 4. messageRead
+    #    - Se dispara cuando un usuario marca un mensaje como leído.
+    #    - Datos: { mensajeId, conversacionId, usuarioId, leidoEn }
+    #    - Receptores: el autor del mensaje y otros usuarios en la conversación.
+    #
+    # EVENTOS DEL CLIENTE AL SERVIDOR (métodos que el cliente puede invocar):
+    # 1. SendMessage(conversacionId, contenido)
+    #    - Envía un nuevo mensaje a una conversación.
+    #
+    # 2. MarkAsRead(mensajeId, conversacionId)
+    #    - Marca un mensaje como leído.
+    #
+    # 3. SendTypingIndicator(conversacionId, isTyping)
+    #    - Indica que el usuario está escribiendo (isTyping=true) o dejó de escribir (isTyping=false).
+
+  # --- Esquemas de Seguridad ---
+  securitySchemes:
+    auth0Jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Token JWT provisto por Auth0 para un usuario."
+
+# 6. Seguridad Global
+# Todos los endpoints requieren un JWT de usuario.
+security:
+  - auth0Jwt: []
+
+# 7. Paths (Endpoints)
+paths:
+  # --- Path: /conversaciones/{conversacionId}/mensajes ---
+  /conversaciones/{conversacionId}/mensajes:
+    parameters:
+      - name: conversacionId
+        in: path
+        required: true
+        description: "El ID de la conversación (puede ser un ID de grupo o un ID de usuario)."
+        schema:
+          type: string
+          example: "auth0|6539f1..."
+      - name: tipo
+        in: query
+        required: true
+        description: "El tipo de conversación (1 = Grupo, 2 = Chat 1-a-1)."
+        schema:
+          type: integer
+          enum: [1, 2]
+          example: 2
+
+    get:
+      tags:
+        - Mensajes
+      summary: "Obtener historial de mensajes (paginado)"
+      description: "Obtiene una página del historial de mensajes para una conversación específica."
+      operationId: GetHistorialMensajes
+      parameters:
+        - name: before
+          in: query
+          required: false
+          description: "Cursor de paginación. Pide mensajes *anteriores* a este ID de mensaje."
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: "Cantidad de mensajes a devolver."
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        "200":
+          description: "Una página del historial de mensajes."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MensajesPaginadosResponse"
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres miembro de esta conversación)."
+        "404":
+          description: "Conversación no encontrada."
+
+    post:
+      tags:
+        - Mensajes
+      summary: "Enviar un nuevo mensaje"
+      description: "Envía un mensaje a una conversación específica. El mensaje se persiste inmediatamente y se distribuye en tiempo real mediante SignalR."
+      operationId: EnviarMensaje
+      requestBody:
+        description: Datos del mensaje a enviar.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearMensajeRequest"
+      responses:
+        "201":
+          description: "Mensaje enviado exitosamente."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MensajeResponse"
+        "400":
+          description: "Solicitud inválida (contenido vacío o muy largo)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no eres miembro de esta conversación)."
+        "404":
+          description: "Conversación no encontrada."
+
+  # --- Path: /mensajes/{mensajeId}/lecturas ---
+  /mensajes/{mensajeId}/lecturas:
+    get:
+      tags:
+        - Lecturas
+      summary: "Ver acuses de lectura"
+      description: "Obtiene la lista de usuarios que han leído un mensaje específico."
+      operationId: GetAcusesDeLectura
+      parameters:
+        - name: mensajeId
+          in: path
+          required: true
+          description: "El ID del mensaje a consultar."
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: "Lista de usuarios que leyeron el mensaje."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AcuseLecturaResponse"
+        "401":
+          description: "No autorizado."
+        "403":
+          description: "Acceso denegado (no puedes ver las lecturas de este mensaje)."
+
+  # --- Path: /mensajes/{mensajeId}/lectura ---
+  /mensajes/{mensajeId}/lectura:
+    patch:
+      tags:
+        - Lecturas
+      summary: "Marcar un mensaje como leído"
+      description: "Registra que el usuario actual ha leído un mensaje. Se dispara el evento SignalR 'messageRead' para notificar a otros usuarios."
+      operationId: MarcarMensajeComoLeido
+      parameters:
+        - name: mensajeId
+          in: path
+          required: true
+          description: "El ID del mensaje a marcar como leído."
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarcarComoLeidoRequest"
+      responses:
+        "200":
+          description: "Mensaje marcado como leído exitosamente."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcuseLecturaResponse"
+        "401":
+          description: "No autorizado."
+        "404":
+          description: "Mensaje no encontrado."
+
+  # --- ENDPOINTS FUTUROS (comentados) ---
+  # Los siguientes endpoints están diseñados para futuras funcionalidades:
+  #
+  # PATCH /mensajes/{mensajeId}
+  #   - Editar un mensaje existente.
+  #   - Solo el autor puede editarlo.
+  #   - Se marca como editado y se distribuye el cambio vía SignalR.
+  #
+  # DELETE /mensajes/{mensajeId}
+  #   - Borrar un mensaje (eliminación suave: marcar como eliminado).
+  #   - Solo el autor o admins del grupo pueden borrarlo.
+  #   - Se distribuye el cambio vía SignalR.
+  #
+  # POST /mensajes/{mensajeId}/reacciones
+  #   - Agregar una reacción emoji a un mensaje.
+  #   - Datos: { emoji, reactionType } (e.g., "👍", "❤️", etc.)
+  #   - Se distribuye vía SignalR con evento 'reactionAdded'.
+  #
+  # DELETE /mensajes/{mensajeId}/reacciones/{reaccionId}
+  #   - Remover una reacción de un mensaje.
+  #   - Se distribuye vía SignalR con evento 'reactionRemoved'.

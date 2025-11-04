@@ -1,0 +1,15 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "DatabaseConnection": "Server=localhost;Database=chatapp_usuarios;User=YOUR_DB_USER;Password=YOUR_DB_PASSWORD;"
+  },
+  "Auth0": {
+    "Authority": "https://YOUR_AUTH0_DOMAIN.auth0.com/",
+    "Audience": "https://api.chatapp.com"
+  }
+}
