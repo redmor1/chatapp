@@ -12,7 +12,7 @@ info:
 
 # 3. Servidores
 servers:
-  - url: /api/v1/usuarios
+  - url: /api/v1/usuario
     description: Servidor de desarrollo
 
 # 4. Tags (Agrupadores)

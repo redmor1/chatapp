@@ -6,7 +6,6 @@ namespace Mensajes.API.DTOs
         string ConversacionId,
         string AutorId,
         string Contenido,
-        DateTime CreadoEn,
-        string Estado
+        DateTime CreadoEn
     );
 }

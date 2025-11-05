@@ -5,7 +5,7 @@ namespace Usuarios.API.DTOs
 (
     string Tipo,
     string Titulo,
-    string Estado,
+    int Estado,
     string Detalle
 );
 }

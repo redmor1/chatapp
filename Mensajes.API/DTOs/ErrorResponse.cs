@@ -3,7 +3,7 @@ namespace Mensajes.API.DTOs
     public record ErrorResponse(
         string Tipo,
         string Titulo,
-        string Estado,
+        int Estado,
         string Detalle
     );
 }

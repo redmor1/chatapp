@@ -14,7 +14,7 @@ info:
 
 # 3. Servidores
 servers:
-  - url: /api/v1
+  - url: /api/v1/mensaje
     description: Servidor de desarrollo
 
 # 4. Tags (Agrupadores)
