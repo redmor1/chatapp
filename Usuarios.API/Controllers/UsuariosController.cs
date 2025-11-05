@@ -42,7 +42,7 @@ namespace Usuarios.API.Controllers
                 return NotFound(new ErrorResponse(
                     "https://api.chatapp.com/errores/usuario-no-encontrado",
                     "Usuario no encontrado",
-                    "404",
+                    404,
                     "Perfil de usuario no encontrado en la base de datos local. Pendiente de sincronización."
                 ));
             }
@@ -67,7 +67,7 @@ namespace Usuarios.API.Controllers
                 return NotFound(new ErrorResponse(
                     "https://api.chatapp.com/errores/usuario-no-encontrado",
                     "Usuario no encontrado",
-                    "404",
+                    404,
                     "No se pudo actualizar el perfil porque el usuario no existe."
                 ));
             }
@@ -90,7 +90,7 @@ namespace Usuarios.API.Controllers
                 return Unauthorized(new ErrorResponse(
                     "https://api.chatapp.com/errores/no-autorizado",
                     "API Key inválida",
-                    "401",
+                    401,
                     "La API Key es requerida para este endpoint."
                 ));
             }
@@ -100,7 +100,7 @@ namespace Usuarios.API.Controllers
                 return BadRequest(new ErrorResponse(
                     "https://api.chatapp.com/errores/validacion",
                     "Error de validación",
-                    "400",
+                    400,
                     "La lista de IDs no puede estar vacía."
                 ));
             }
@@ -124,7 +124,7 @@ namespace Usuarios.API.Controllers
                 return Unauthorized(new ErrorResponse(
                     "https://api.chatapp.com/errores/no-autorizado",
                     "API Key inválida",
-                    "401",
+                    401,
                     "La API Key proporcionada es inválida o faltante."
                 ));
             }
