@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configurar BD
 var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
 builder.Services.AddDbContext<GruposDbContext>(options =>
-    options.UseMySQL(connectionString));
+    options.UseMySQL(connectionString!));
 
 // Configurar Auth0
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
@@ -49,6 +49,13 @@ builder.Services.AddCors(options =>
 
 // Registrar servicios
 builder.Services.AddScoped<IGrupoService, GrupoService>();
+
+// Configurar HttpClient para Usuarios.API
+builder.Services.AddHttpClient<IUsuariosApiClient, UsuariosApiClient>(client =>
+{
+    var usuariosApiUrl = builder.Configuration["Services:UsuariosApi"];
+    client.BaseAddress = new Uri(usuariosApiUrl!);
+});
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();

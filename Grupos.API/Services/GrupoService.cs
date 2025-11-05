@@ -10,12 +10,14 @@ namespace Grupos.API.Services
     {
         private readonly GruposDbContext _context;
         private readonly ILogger<GrupoService> _logger;
+        private readonly IUsuariosApiClient _usuariosApiClient;
 
 
-        public GrupoService(GruposDbContext context, ILogger<GrupoService> logger)
+        public GrupoService(GruposDbContext context, ILogger<GrupoService> logger, IUsuariosApiClient usuariosApiClient)
         {
             _context = context;
             _logger = logger;
+            _usuariosApiClient = usuariosApiClient;
         }
 
         public async Task<List<GrupoDetalleResponse>> GetGruposParaUsuarioAsync(string usuarioActualId) {
@@ -28,14 +30,15 @@ namespace Grupos.API.Services
                 .Include(g => g.MiembrosGrupos)
                 .ToListAsync();
 
-            // Simulacion placeholder de llamada a servicio de Usuarios
-            // (En el futuro, esto sería una llamada con _httpClientFactory)
-            var usuariosPlaceholder = new Dictionary<string, string>
-            {
-                { "auth0|id_del_usuario_1", "Usuario Falso 1" },
-                { "auth0|id_del_usuario_2", "Usuario Falso 2" },
-                { usuarioActualId, "Pepe Lopez" }
-            };
+            // Obtener todos los IDs de usuarios únicos de todos los grupos
+            var usuarioIds = gruposEntidad
+                .SelectMany(g => g.MiembrosGrupos.Select(m => m.UsuarioId))
+                .Distinct()
+                .ToList();
+
+            // Llamada al servicio de Usuarios para obtener información en batch
+            var usuarios = await _usuariosApiClient.GetUsuariosBatchAsync(usuarioIds);
+            var usuariosDict = usuarios.ToDictionary(u => u.Id, u => u);
 
             // Mapping a DTOs
             var gruposResponse = new List<GrupoDetalleResponse>();
@@ -46,10 +49,19 @@ namespace Grupos.API.Services
                 var miembrosResponse = new List<UsuarioResumenResponse>();
                 foreach (var miembro in grupo.MiembrosGrupos)
                 {
-                    miembrosResponse.Add(new UsuarioResumenResponse(
-                        miembro.UsuarioId,
-                        usuariosPlaceholder.GetValueOrDefault(miembro.UsuarioId, "Usuario Desconocido")
-                    ));
+                    if (usuariosDict.TryGetValue(miembro.UsuarioId, out var usuario))
+                    {
+                        miembrosResponse.Add(usuario);
+                    }
+                    else
+                    {
+                        // Fallback si el usuario no fue encontrado
+                        miembrosResponse.Add(new UsuarioResumenResponse(
+                            miembro.UsuarioId,
+                            "Usuario Desconocido",
+                            null
+                        ));
+                    }
                 }
 
                 // Mapeo del grupo principal
@@ -115,16 +127,23 @@ namespace Grupos.API.Services
 
             _logger.LogInformation("Grupo {GrupoId} creado exitosamente", nuevoGrupo.Id);
 
-            // Mapear a DTO placeholder usuarios api
-            var usuariosPlaceholder = new Dictionary<string, string>
-            {
-                { usuarioActualId, "Pepe Lopez" }
-            };
+            // Obtener información de usuarios del servicio de Usuarios
+            var usuarioIds = listaMiembros.Select(m => m.UsuarioId).ToList();
+            var usuarios = await _usuariosApiClient.GetUsuariosBatchAsync(usuarioIds);
+            var usuariosDict = usuarios.ToDictionary(u => u.Id, u => u);
 
-            var miembrosResponse = listaMiembros.Select(m => new UsuarioResumenResponse(
-                m.UsuarioId,
-                usuariosPlaceholder.GetValueOrDefault(m.UsuarioId, "Usuario Invitado")
-            )).ToList();
+            var miembrosResponse = listaMiembros.Select(m =>
+            {
+                if (usuariosDict.TryGetValue(m.UsuarioId, out var usuario))
+                {
+                    return usuario;
+                }
+                return new UsuarioResumenResponse(
+                    m.UsuarioId,
+                    "Usuario Desconocido",
+                    null
+                );
+            }).ToList();
 
             var responseDto = new GrupoDetalleResponse(
                 nuevoGrupo.Id,

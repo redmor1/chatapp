@@ -11,5 +11,8 @@
   "Auth0": {
     "Authority": "https://YOUR_AUTH0_DOMAIN.auth0.com/",
     "Audience": "https://api.chatapp.com"
+  },
+    "Services": {
+    "UsuariosApi": "http://localhost:5260"
   }
 }
