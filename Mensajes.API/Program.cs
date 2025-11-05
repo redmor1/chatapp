@@ -1,6 +1,24 @@
+using Mensajes.API.Data;
+using Mensajes.API.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Configurar BD
+var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
 
+builder.Services.AddDbContext<MensajesDbContext>(options =>
+options.UseMySQL(connectionString));
+
+
+// Configurar Auth0
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Auth0:Authority"];
+        options.Audience = builder.Configuration["Auth0:Audience"];
+    });
 
 // Añadir la política de CORS
 builder.Services.AddCors(options =>
@@ -28,8 +46,11 @@ builder.Services.AddCors(options =>
                       });
 });
 
-// Add services to the container.
 
+builder.Services.AddScoped<IMensajeService, MensajeService>();
+
+// Agregar servicios
+builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
