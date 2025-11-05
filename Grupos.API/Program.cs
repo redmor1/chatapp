@@ -11,9 +11,25 @@ builder.Services.AddDbContext<GruposDbContext>(options =>
     options.UseMySQL(connectionString));
 
 // Configurar Auth0
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options => {     options.Authority = builder.Configuration["Auth0:Authority"];
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+    options.Authority = builder.Configuration["Auth0:Authority"];
     options.Audience = builder.Configuration["Auth0:Audience"];
 });
+
+// Agregar CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173", "http://localhost:3000") // URLs de desarrollo
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 
 // Registrar servicios
 builder.Services.AddScoped<IGrupoService, GrupoService>();
@@ -35,7 +51,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 app.UseAuthentication();
-
+app.UseCors("AllowFrontend");
 app.MapControllers();
 
 app.Run();

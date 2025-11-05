@@ -22,6 +22,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.Audience = builder.Configuration["Auth0:Audience"];
     });
 
+// Agregar CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173", "http://localhost:3000") // URLs de desarrollo
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
+
 
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 
@@ -48,5 +62,6 @@ app.UseAuthorization();
 app.UseAuthentication();
 
 app.MapControllers();
+app.UseCors("AllowFrontend");
 
 app.Run();
