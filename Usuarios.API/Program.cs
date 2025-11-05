@@ -20,6 +20,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.Authority = builder.Configuration["Auth0:Authority"];
         options.Audience = builder.Configuration["Auth0:Audience"];
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     });
 
 
@@ -70,7 +71,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowVercelPolicy");
 
 app.UseAuthentication();
