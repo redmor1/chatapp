@@ -17,17 +17,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     options.Audience = builder.Configuration["Auth0:Audience"];
 });
 
-// Agregar CORS
+// Definir el nombre de la política
+const string AllowVercelPolicy = "AllowVercelPolicy";
+
+// Añadir la política de CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:5173", "http://localhost:3000") // URLs de desarrollo
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
-    });
+    options.AddPolicy(name: AllowVercelPolicy,
+                      policy =>
+                      {
+                          policy.SetIsOriginAllowed(origin =>
+                          {
+                              if (string.IsNullOrEmpty(origin)) return false;
+                              
+                              // Comprueba si el origen es tu URL de Vercel O una preview
+                              // (ej. https://chatapp-front-one.vercel.app O https://chatapp-front-one-....vercel.app)
+                              if (origin.StartsWith("https://chatapp-front-one") && origin.EndsWith(".vercel.app"))
+                                  return true;
+                                  
+                              // Permite localhost para desarrollo
+                              if (builder.Environment.IsDevelopment() && origin.StartsWith("http://localhost"))
+                                  return true;
+
+                              return false;
+                          })
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                      });
 });
 
 
@@ -51,7 +67,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 app.UseAuthentication();
-app.UseCors("AllowFrontend");
+app.UseCors("AllowVercelPolicy");
 app.MapControllers();
 
 app.Run();
