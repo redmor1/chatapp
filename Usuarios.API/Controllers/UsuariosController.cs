@@ -77,8 +77,24 @@ namespace Usuarios.API.Controllers
 
         // POST /api/v1/usuario/batch
         [HttpPost("batch")]
-        public async Task<ActionResult<List<UsuarioPerfilResponse>>> GetUsuariosBatch([FromBody] BatchIdsRequest request)
+        [AllowAnonymous] // Requiere API Key en header en lugar de JWT
+        public async Task<ActionResult<List<UsuarioPerfilResponse>>> GetUsuariosBatch(
+            [FromBody] BatchIdsRequest request,
+            [FromHeader(Name = "X-API-Key")] string? apiKey)
         {
+            // Validar API Key
+            var expectedApiKey = _configuration["Services:InterServiceApiKey"];
+            if (string.IsNullOrEmpty(apiKey) || apiKey != expectedApiKey)
+            {
+                _logger.LogWarning("Intento de acceso al endpoint /batch sin API Key válida");
+                return Unauthorized(new ErrorResponse(
+                    "https://api.chatapp.com/errores/no-autorizado",
+                    "API Key inválida",
+                    "401",
+                    "La API Key es requerida para este endpoint."
+                ));
+            }
+
             if (request.Ids == null || request.Ids.Count == 0)
             {
                 return BadRequest(new ErrorResponse(

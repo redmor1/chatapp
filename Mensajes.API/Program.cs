@@ -1,21 +1,11 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
-var app = builder.Build();
-
-
-// Definir el nombre de la política
-const string AllowVercelPolicy = "AllowVercelPolicy";
 
 // Añadir la política de CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: AllowVercelPolicy,
+    options.AddPolicy(name: "AllowVercelPolicy",
                       policy =>
                       {
                           policy.SetIsOriginAllowed(origin =>
@@ -38,17 +28,22 @@ builder.Services.AddCors(options =>
                       });
 });
 
+// Add services to the container.
 
-// Configure the HTTP request pipeline.
+builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
+
+var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
 app.UseCors("AllowVercelPolicy");
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.Run();

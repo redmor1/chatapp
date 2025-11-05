@@ -6,6 +6,6 @@ namespace Grupos.API.DTOs
     (
         [Required]
         string Nombre,
-        List<string> MiembrosIniciales // Usamos 'string' para los IDs de Auth0
+        List<string>? MiembrosIniciales // Usamos 'string' para los IDs de Auth0
     );
 }

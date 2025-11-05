@@ -105,7 +105,8 @@ namespace Grupos.API.Services
             listaMiembros.Add(miembroCreador);
 
             // Agregar a los otros miembros iniciales (si los hay)
-            foreach (var miembroId in request.MiembrosIniciales)
+            if (request.MiembrosIniciales != null && request.MiembrosIniciales.Any()) {             
+                foreach (var miembroId in request.MiembrosIniciales)
             {
                 // Evitar agregar al creador dos veces
                 if (miembroId != usuarioActualId)
@@ -118,7 +119,9 @@ namespace Grupos.API.Services
                         Rol = "miembro", // Los miembros iniciales son 'miembro'
                     });
                 }
-            }
+            }}
+
+
 
             // Agregar todo a la BD en una transacción
             await _context.Grupos.AddAsync(nuevoGrupo);

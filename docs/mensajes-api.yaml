@@ -52,11 +52,6 @@ components:
         contenido:
           type: string
           example: "Hola, ¿cómo estás?"
-        estado:
-          type: string
-          enum: [enviado, entregado, leído]
-          description: "Estado del mensaje (enviado, entregado, leído)."
-          example: "leído"
         creadoEn:
           type: string
           format: date-time
@@ -139,12 +134,12 @@ components:
     # EVENTOS DEL SERVIDOR AL CLIENTE:
     # 1. messageSent
     #    - Se dispara cuando un usuario envía un mensaje.
-    #    - Datos: { mensajeId, conversacionId, autorId, contenido, creadoEn, estado: "enviado" }
+    #    - Datos: { mensajeId, conversacionId, autorId, contenido, creadoEn}
     #    - Receptores: todos los usuarios en la conversación.
     #
     # 2. messageDelivered
     #    - Se dispara cuando el mensaje llega al servidor y se persiste en BD.
-    #    - Datos: { mensajeId, conversacionId, estado: "entregado" }
+    #    - Datos: { mensajeId, conversacionId}
     #    - Receptores: el autor del mensaje.
     #
     # 3. userTyping
@@ -195,11 +190,11 @@ paths:
       - name: tipo
         in: query
         required: true
-        description: "El tipo de conversación (1 = Grupo, 2 = Chat 1-a-1)."
+        description: "El tipo de conversación (grupo o directo)."
         schema:
-          type: integer
-          enum: [1, 2]
-          example: 2
+          type: string
+          enum: ["grupo", "directo"]
+          example: "directo"
 
     get:
       tags:

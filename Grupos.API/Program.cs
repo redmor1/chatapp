@@ -17,13 +17,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     options.Audience = builder.Configuration["Auth0:Audience"];
 });
 
-// Definir el nombre de la política
-const string AllowVercelPolicy = "AllowVercelPolicy";
 
 // Añadir la política de CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: AllowVercelPolicy,
+    options.AddPolicy(name: "AllowVercelPolicy",
                       policy =>
                       {
                           policy.SetIsOriginAllowed(origin =>
@@ -71,10 +69,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
-app.UseAuthentication();
 app.UseCors("AllowVercelPolicy");
+
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
