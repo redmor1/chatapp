@@ -13,6 +13,7 @@
     "Audience": "https://api.chatapp.com"
   },
     "Services": {
-    "UsuariosApi": "http://localhost:5260"
+    "UsuariosApi": "http://localhost:5260",
+    "InterServiceApiKey": "RELLENAR"
   }
 }

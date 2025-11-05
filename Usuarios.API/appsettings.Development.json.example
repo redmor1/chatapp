@@ -12,5 +12,8 @@
     "Authority": "https://YOUR_AUTH0_DOMAIN.auth0.com/",
     "Audience": "https://api.chatapp.com",
     "SyncKey": "1234567890abcdefghijhp"
+  },
+    "Services": {
+    "InterServiceApiKey": "RELLENAR"
   }
 }
