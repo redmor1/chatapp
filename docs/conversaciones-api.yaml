@@ -183,6 +183,8 @@ paths:
         "401":
           description: "No autorizado."
 
+  # --- Path: /grupo ---
+  /grupo:
     post:
       tags:
         - Conversacion
@@ -271,7 +273,7 @@ paths:
         "404":
           description: "Conversación no encontrada."
 
-    patch:
+    put:
       tags:
         - Conversacion
       summary: "Actualizar una conversación (ej. cambiar nombre de grupo)."
@@ -359,16 +361,28 @@ paths:
             schema:
               $ref: "#/components/schemas/AgregarMiembroRequest"
       responses:
-        "204":
-          description: "Miembro agregado (Sin contenido)."
+        "200":
+          description: "Miembro agregado exitosamente."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Miembro agregado exitosamente"
+        "400":
+          description: "Error al agregar miembro."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: "No autorizado."
         "403":
           description: "Acceso denegado (no eres admin o no es un grupo)."
         "404":
           description: "Conversación o usuario no encontrado."
-        "409":
-          description: "Conflicto (el usuario ya es miembro)."
 
   # --- Path: /{conversacionId}/miembros/{usuarioId} ---
   /{conversacionId}/miembros/{usuarioId}:
