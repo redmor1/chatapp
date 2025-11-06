@@ -37,22 +37,13 @@ CREATE TABLE `conversaciones` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `conversaciones`
---
-
-LOCK TABLES `conversaciones` WRITE;
-/*!40000 ALTER TABLE `conversaciones` DISABLE KEYS */;
-/*!40000 ALTER TABLE `conversaciones` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `miembros`
 --
 
-DROP TABLE IF EXISTS `miembros`;
+DROP TABLE IF EXISTS `miembros_conversacion`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `miembros` (
+CREATE TABLE `miembros_conversacion` (
   `id` char(36) NOT NULL,
   `conversacion_id` char(36) NOT NULL,
   `usuario_id` varchar(255) NOT NULL,
@@ -63,14 +54,7 @@ CREATE TABLE `miembros` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `miembros`
---
 
-LOCK TABLES `miembros` WRITE;
-/*!40000 ALTER TABLE `miembros` DISABLE KEYS */;
-/*!40000 ALTER TABLE `miembros` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Dumping routines for database 'chatapp_conversaciones'
