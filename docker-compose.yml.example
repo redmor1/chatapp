@@ -46,19 +46,19 @@ services:
     depends_on:
       - db-chatapp
 
-  # --- API de Grupos ---
-  grupos-api:
-    container_name: grupos-api
+  # --- API de Conversaciones ---
+  conversaciones-api:
+    container_name: conversaciones-api
     build:
       context: .
-      dockerfile: Grupos.API/Dockerfile
+      dockerfile: Conversaciones.API/Dockerfile
     ports:
       - "5217:8080" #
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
       ASPNETCORE_URLS: "http://+:8080"
       # Conexión a su BD específica
-      ConnectionStrings__DatabaseConnection: "Server=db-chatapp;Database=chatapp_grupos;User=chatapp_user;Password=password" # <-- RELLENAR
+      ConnectionStrings__DatabaseConnection: "Server=db-chatapp;Database=chatapp_conversaciones;User=chatapp_user;Password=password" # <-- RELLENAR
       Auth0__Authority: "AUTHORITY_URL" # <-- RELLENAR
       Auth0__Audience: "https://api.chatapp.com"
       # Comunicación con Usuarios.API dentro de Docker
