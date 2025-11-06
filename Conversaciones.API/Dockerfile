@@ -3,14 +3,14 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Establece el proyecto principal para este Dockerfile
-ARG PROJECT_NAME=Grupos.API
+ARG PROJECT_NAME=Conversaciones.API
 
 # Copiar el archivo de la solución
 COPY ChatApp.sln .
 
 # Copiar los .csproj de TODOS los proyectos
 COPY Usuarios.API/*.csproj Usuarios.API/
-COPY Grupos.API/*.csproj Grupos.API/
+COPY Conversaciones.API/*.csproj Conversaciones.API/
 COPY Mensajes.API/*.csproj Mensajes.API/
 
 # Restaurar dependencias para toda la solución
@@ -32,4 +32,4 @@ COPY --from=build /app/publish .
 EXPOSE 8080
 
 # Entrypoint para correr esta app
-ENTRYPOINT ["dotnet", "Grupos.API.dll"]
+ENTRYPOINT ["dotnet", "Conversaciones.API.dll"]

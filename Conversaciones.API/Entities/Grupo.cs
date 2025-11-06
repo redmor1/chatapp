@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Grupos.API.Entidades;
+namespace Conversaciones.API.Entities;
 
 public partial class Grupo
 {

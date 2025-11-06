@@ -1,5 +1,5 @@
-using Grupos.API.Data;
-using Grupos.API.Services;
+using Conversaciones.API.Data;
+using Conversaciones.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +15,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 {
     options.Authority = builder.Configuration["Auth0:Authority"];
     options.Audience = builder.Configuration["Auth0:Audience"];
-    options.RequireHttpsMetadata = false;
 });
 
 

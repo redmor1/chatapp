@@ -1,7 +1,7 @@
-using Grupos.API.DTOs;
+using Conversaciones.API.DTOs;
 using System.Text.Json;
 
-namespace Grupos.API.Services;
+namespace Conversaciones.API.Services;
 
 public class UsuariosApiClient : IUsuariosApiClient
 {

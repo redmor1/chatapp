@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using Grupos.API.Entidades;
+using Conversaciones.API.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Grupos.API.Data;
+namespace Conversaciones.API.Data;
 
 public partial class GruposDbContext : DbContext
 {

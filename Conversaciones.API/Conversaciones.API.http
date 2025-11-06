@@ -1,0 +1,7 @@
+@Conversaciones.API_HostAddress = http://localhost:5217
+
+GET {{Conversaciones.API_HostAddress}}/api/v1/conversacion
+Accept: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+###

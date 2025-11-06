@@ -1,13 +1,13 @@
-using Grupos.API.Data;
-using Grupos.API.DTOs;
-using Grupos.API.Entidades;
-using Grupos.API.Services;
+using Conversaciones.API.Data;
+using Conversaciones.API.DTOs;
+using Conversaciones.API.Entidades;
+using Conversaciones.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace Grupos.API.Controllers
+namespace Conversaciones.API.Controllers
 {
     [ApiController]
     [Route("api/v1/grupo")]

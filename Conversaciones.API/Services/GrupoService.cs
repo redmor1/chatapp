@@ -1,10 +1,10 @@
-﻿using Grupos.API.Data;
-using Grupos.API.DTOs;
-using Grupos.API.Entidades;
+﻿using Conversaciones.API.Data;
+using Conversaciones.API.DTOs;
+using Conversaciones.API.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Grupos.API.Services
+namespace Conversaciones.API.Services
 {
     public class GrupoService: IGrupoService
     {

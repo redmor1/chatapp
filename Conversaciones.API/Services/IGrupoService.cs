@@ -1,7 +1,7 @@
-﻿using Grupos.API.DTOs;
+﻿using Conversaciones.API.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Grupos.API.Services
+namespace Conversaciones.API.Services
 {
     public interface IGrupoService
     {

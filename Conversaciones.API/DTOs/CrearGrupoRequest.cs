@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Grupos.API.DTOs
+namespace Conversaciones.API.DTOs
 {
     public record CrearGrupoRequest
     (
