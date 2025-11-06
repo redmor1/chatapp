@@ -5,30 +5,33 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Conversaciones.API.Data;
 
-public partial class GruposDbContext : DbContext
+public partial class ConversacionesDbContext : DbContext
 {
-    public GruposDbContext()
+    public ConversacionesDbContext()
     {
     }
 
-    public GruposDbContext(DbContextOptions<GruposDbContext> options)
+    public ConversacionesDbContext(DbContextOptions<ConversacionesDbContext> options)
         : base(options)
     {
     }
 
-    public virtual DbSet<Grupo> Grupos { get; set; }
+    public virtual DbSet<Conversacion> Conversaciones { get; set; }
 
-    public virtual DbSet<MiembrosGrupo> MiembrosGrupos { get; set; }
+    public virtual DbSet<MiembrosConversacion> MiembrosConversacion { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Grupo>(entity =>
+        modelBuilder.Entity<Conversacion>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
-            entity.ToTable("grupos");
+            entity.ToTable("conversaciones");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Tipo)
+                .HasMaxLength(10)
+                .HasColumnName("tipo");
             entity.Property(e => e.AvatarUrl)
                 .HasColumnType("text")
                 .HasColumnName("avatar_url");
@@ -44,25 +47,25 @@ public partial class GruposDbContext : DbContext
                 .HasColumnName("nombre");
         });
 
-        modelBuilder.Entity<MiembrosGrupo>(entity =>
+        modelBuilder.Entity<MiembrosConversacion>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
-            entity.ToTable("miembros_grupo");
+            entity.ToTable("miembros_conversacion");
 
-            entity.HasIndex(e => new { e.GrupoId, e.UsuarioId }, "uq_grupo_usuario").IsUnique();
+            entity.HasIndex(e => new { e.ConversacionId, e.UsuarioId }, "uq_conversacion_usuario").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.GrupoId).HasColumnName("grupo_id");
+            entity.Property(e => e.ConversacionId).HasColumnName("conversacion_id");
             entity.Property(e => e.Rol)
                 .HasDefaultValueSql("'miembro'")
                 .HasColumnType("enum('miembro','admin')")
                 .HasColumnName("rol");
             entity.Property(e => e.UsuarioId).HasColumnName("usuario_id");
 
-            entity.HasOne(d => d.Grupo).WithMany(p => p.MiembrosGrupos)
-                .HasForeignKey(d => d.GrupoId)
-                .HasConstraintName("fk_miembro_grupo");
+            entity.HasOne(d => d.Conversacion).WithMany(p => p.MiembrosConversacion)
+                .HasForeignKey(d => d.ConversacionId)
+                .HasConstraintName("fk_miembro_conversacion");
         });
 
         OnModelCreatingPartial(modelBuilder);

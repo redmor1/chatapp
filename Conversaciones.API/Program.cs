@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configurar BD
 var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
-builder.Services.AddDbContext<GruposDbContext>(options =>
+builder.Services.AddDbContext<ConversacionesDbContext>(options =>
     options.UseMySQL(connectionString!));
 
 // Configurar Auth0
@@ -46,7 +46,7 @@ builder.Services.AddCors(options =>
 
 
 // Registrar servicios
-builder.Services.AddScoped<IGrupoService, GrupoService>();
+builder.Services.AddScoped<IConversacionService, ConversacionService>();
 
 // Configurar HttpClient para Usuarios.API
 builder.Services.AddHttpClient<IUsuariosApiClient, UsuariosApiClient>(client =>
