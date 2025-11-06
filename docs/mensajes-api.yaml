@@ -1,12 +1,10 @@
-#TODO: Revisar consistencia con otros docs y si esta bien hecho
-
 # 1. Versión de la especificación
 openapi: 3.1.9
 
 # 2. Información de la API
 info:
   title: API de Mensajes
-  description: Maneja el historial de mensajes y los acuses de lectura (visto).
+  description: Maneja el almacenamiento, historial y acuses de lectura de mensajes para cualquier conversación.
   version: 1.0.0
   contact:
     name: Equipo de Desarrollo
@@ -20,9 +18,9 @@ servers:
 # 4. Tags (Agrupadores)
 tags:
   - name: Mensajes
-    description: Operaciones para enviar, obtener el historial de mensajes.
+    description: Operaciones para enviar y obtener el historial de mensajes.
   - name: Lecturas
-    description: Operaciones para marcar como leído y ver acuses de lectura (visto).
+    description: Operaciones para marcar como leído y ver acuses de lectura.
   - name: SignalR
     description: Eventos en tiempo real mediante WebSocket (SignalR).
 
@@ -31,9 +29,6 @@ components:
   # --- Esquemas (DTOs) ---
   schemas:
     # DTO para un único mensaje.
-    # Nota: No devolvemos el perfil del autor (nombre/avatar).
-    # El frontend llamará a Usuarios.API:/batch con los 'autorId'
-    # para obtener esa información.
     MensajeResponse:
       type: object
       description: Representación de un único mensaje.
@@ -44,7 +39,8 @@ components:
           description: "ID del mensaje."
         conversacionId:
           type: string
-          description: "ID de la conversación (un ID de grupo o un ID de usuario)."
+          format: uuid
+          description: "El ID de la conversación (un GUID de la API de Conversaciones)."
         autorId:
           type: string
           description: "ID del usuario que envió el mensaje."
@@ -79,13 +75,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MensajeResponse"
-        # Usamos paginación basada en cursor (el ID del último mensaje)
-        # para un rendimiento óptimo en un chat.
         nextCursor:
           type: string
           format: uuid
           nullable: true
-          description: "El ID del mensaje a partir del cual pedir la siguiente página (más antiguos)."
+          description: "El ID del mensaje a partir del cual pedir la siguiente página."
           example: "a1b2c3d4-..."
 
     # DTO para marcar un mensaje como leído
@@ -98,7 +92,7 @@ components:
           format: date-time
           description: "Timestamp de cuándo el usuario leyó el mensaje (UTC)."
 
-    # DTO para un acuse de lectura
+    # DTO para un acuse de lectura (Simplificado)
     AcuseLecturaResponse:
       type: object
       description: "Representa a un usuario que leyó un mensaje."
@@ -106,9 +100,6 @@ components:
         usuarioId:
           type: string
           example: "auth0|6539f1..."
-        nombreUsuario:
-          type: string
-          example: "Juan Pérez"
         leidoEn:
           type: string
           format: date-time
@@ -171,7 +162,6 @@ components:
       description: "Token JWT provisto por Auth0 para un usuario."
 
 # 6. Seguridad Global
-# Todos los endpoints requieren un JWT de usuario.
 security:
   - auth0Jwt: []
 
@@ -183,30 +173,23 @@ paths:
       - name: conversacionId
         in: path
         required: true
-        description: "El ID de la conversación (puede ser un ID de grupo o un ID de usuario)."
+        description: "El ID único de la conversación (proporcionado por Conversaciones.API)."
         schema:
           type: string
-          example: "auth0|6539f1..."
-      - name: tipo
-        in: query
-        required: true
-        description: "El tipo de conversación (grupo o directo)."
-        schema:
-          type: string
-          enum: ["grupo", "directo"]
-          example: "directo"
+          format: uuid
+          example: "a1b2c3d4-..."
 
     get:
       tags:
         - Mensajes
       summary: "Obtener historial de mensajes (paginado)"
-      description: "Obtiene una página del historial de mensajes para una conversación específica."
+      description: "Obtiene una página del historial de mensajes para una conversación."
       operationId: GetHistorialMensajes
       parameters:
         - name: before
           in: query
           required: false
-          description: "Cursor de paginación. Pide mensajes *anteriores* a este ID de mensaje."
+          description: "Cursor de paginación (pide mensajes anteriores a este ID)."
           schema:
             type: string
             format: uuid
@@ -227,16 +210,15 @@ paths:
                 $ref: "#/components/schemas/MensajesPaginadosResponse"
         "401":
           description: "No autorizado."
-        "403":
-          description: "Acceso denegado (no eres miembro de esta conversación)."
+        # --- 403 (FORBIDDEN) ELIMINADO ---
         "404":
-          description: "Conversación no encontrada."
+          description: "Conversación no encontrada (o sin mensajes)."
 
     post:
       tags:
         - Mensajes
       summary: "Enviar un nuevo mensaje"
-      description: "Envía un mensaje a una conversación específica. El mensaje se persiste inmediatamente y se distribuye en tiempo real mediante SignalR."
+      description: "Envía un mensaje a una conversación específica."
       operationId: EnviarMensaje
       requestBody:
         description: Datos del mensaje a enviar.
@@ -253,17 +235,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/MensajeResponse"
         "400":
-          description: "Solicitud inválida (contenido vacío o muy largo)."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: "No autorizado."
-        "403":
-          description: "Acceso denegado (no eres miembro de esta conversación)."
-        "404":
-          description: "Conversación no encontrada."
 
   # --- Path: /mensajes/{mensajeId}/lecturas ---
   /mensajes/{mensajeId}/lecturas:
@@ -271,7 +245,7 @@ paths:
       tags:
         - Lecturas
       summary: "Ver acuses de lectura"
-      description: "Obtiene la lista de usuarios que han leído un mensaje específico."
+      description: "Obtiene la lista de IDs de usuarios que han leído un mensaje."
       operationId: GetAcusesDeLectura
       parameters:
         - name: mensajeId
@@ -292,8 +266,6 @@ paths:
                   $ref: "#/components/schemas/AcuseLecturaResponse"
         "401":
           description: "No autorizado."
-        "403":
-          description: "Acceso denegado (no puedes ver las lecturas de este mensaje)."
 
   # --- Path: /mensajes/{mensajeId}/lectura ---
   /mensajes/{mensajeId}/lectura:
@@ -301,7 +273,7 @@ paths:
       tags:
         - Lecturas
       summary: "Marcar un mensaje como leído"
-      description: "Registra que el usuario actual ha leído un mensaje. Se dispara el evento SignalR 'messageRead' para notificar a otros usuarios."
+      description: "Registra que el usuario actual (autenticado) ha leído un mensaje."
       operationId: MarcarMensajeComoLeido
       parameters:
         - name: mensajeId
@@ -328,25 +300,3 @@ paths:
           description: "No autorizado."
         "404":
           description: "Mensaje no encontrado."
-
-  # --- ENDPOINTS FUTUROS (comentados) ---
-  # Los siguientes endpoints están diseñados para futuras funcionalidades:
-  #
-  # PATCH /mensajes/{mensajeId}
-  #   - Editar un mensaje existente.
-  #   - Solo el autor puede editarlo.
-  #   - Se marca como editado y se distribuye el cambio vía SignalR.
-  #
-  # DELETE /mensajes/{mensajeId}
-  #   - Borrar un mensaje (eliminación suave: marcar como eliminado).
-  #   - Solo el autor o admins del grupo pueden borrarlo.
-  #   - Se distribuye el cambio vía SignalR.
-  #
-  # POST /mensajes/{mensajeId}/reacciones
-  #   - Agregar una reacción emoji a un mensaje.
-  #   - Datos: { emoji, reactionType } (e.g., "👍", "❤️", etc.)
-  #   - Se distribuye vía SignalR con evento 'reactionAdded'.
-  #
-  # DELETE /mensajes/{mensajeId}/reacciones/{reaccionId}
-  #   - Remover una reacción de un mensaje.
-  #   - Se distribuye vía SignalR con evento 'reactionRemoved'.

@@ -1,5 +1,5 @@
-using Grupos.API.Data;
-using Grupos.API.Services;
+using Conversaciones.API.Data;
+using Conversaciones.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configurar BD
 var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
-builder.Services.AddDbContext<GruposDbContext>(options =>
+builder.Services.AddDbContext<ConversacionesDbContext>(options =>
     options.UseMySQL(connectionString!));
 
 // Configurar Auth0
@@ -15,7 +15,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 {
     options.Authority = builder.Configuration["Auth0:Authority"];
     options.Audience = builder.Configuration["Auth0:Audience"];
-    options.RequireHttpsMetadata = false;
 });
 
 
@@ -47,7 +46,7 @@ builder.Services.AddCors(options =>
 
 
 // Registrar servicios
-builder.Services.AddScoped<IGrupoService, GrupoService>();
+builder.Services.AddScoped<IConversacionService, ConversacionService>();
 
 // Configurar HttpClient para Usuarios.API
 builder.Services.AddHttpClient<IUsuariosApiClient, UsuariosApiClient>(client =>

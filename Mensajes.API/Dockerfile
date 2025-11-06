@@ -10,7 +10,7 @@ COPY ChatApp.sln .
 
 # Copiar los .csproj de TODOS los proyectos
 COPY Usuarios.API/*.csproj Usuarios.API/
-COPY Grupos.API/*.csproj Grupos.API/
+COPY Conversaciones.API/*.csproj Conversaciones.API/
 COPY Mensajes.API/*.csproj Mensajes.API/
 
 # Restaurar dependencias para toda la solución

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36109.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grupos.API", "Grupos.API\Grupos.API.csproj", "{6D2F2F26-F8AC-4FBC-BDCA-C1B4B5AE2E4A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conversaciones.API", "Conversaciones.API\Conversaciones.API.csproj", "{6D2F2F26-F8AC-4FBC-BDCA-C1B4B5AE2E4A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject

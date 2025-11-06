@@ -1,6 +1,6 @@
-using Grupos.API.DTOs;
+using Conversaciones.API.DTOs;
 
-namespace Grupos.API.Services
+namespace Conversaciones.API.Services
 {
     public interface IUsuariosApiClient
     {

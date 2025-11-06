@@ -3,8 +3,8 @@ openapi: 3.1.9
 
 # 1. Información básica de tu API
 info:
-  title: API de Grupos
-  description: Maneja la creación, gestión y membresía de grupos de chat.
+  title: API de Conversaciones
+  description: Maneja la creación, gestión y membresía de todas las conversaciones (grupos y chats directos).
   version: 1.0.0
   contact:
     name: Equipo de Desarrollo
@@ -12,16 +12,16 @@ info:
 
 # 2. Servidores
 servers:
-  - url: /api/v1/grupo
+  - url: /api/v1/conversacion
     description: Servidor de desarrollo
 
 # 3. Tags
 # Define los tags usados en 'paths' para agrupar endpoints en la UI de Swagger.
 tags:
-  - name: Grupo
-    description: Operaciones sobre el recurso principal del grupo.
+  - name: Conversacion
+    description: Operaciones sobre el recurso principal de conversación (grupos y DMs).
   - name: Miembro
-    description: Operaciones para gestionar los miembros de un grupo.
+    description: Operaciones para gestionar los miembros de una conversación.
 
 # 4. Componentes Reutilizables
 components:
@@ -55,7 +55,7 @@ components:
       properties:
         id:
           type: string
-          description: El ID del usuario (de Auth0/Usuarios.API). Formato Auth0, ej. "auth0|123456789"
+          description: El ID del usuario (de Auth0/Usuarios.API).
           example: "auth0|507f1f77bcf86cd799439011"
         nombre:
           type: string
@@ -66,16 +66,26 @@ components:
           description: "URL del avatar del usuario."
           example: "https://example.com/avatars/user1.png"
 
-    # DTO para la respuesta de un grupo detallado
-    GrupoDetalleResponse:
+    # DTO para la respuesta de una conversación detallada
+    ConversacionResponse:
       type: object
-      description: Representación detallada de un grupo y sus miembros.
+      description: Representación detallada de una conversación (grupo o DM).
+      required:
+        - id
+        - tipo
+        - miembros
       properties:
         id:
           type: string
           format: uuid
+        tipo:
+          type: string
+          enum: ["directo", "grupo"]
+          description: "El tipo de conversación."
         nombre:
           type: string
+          nullable: true
+          description: "El nombre (solo para 'grupo')."
           example: "Proyecto Final"
         avatarUrl:
           type: string
@@ -86,7 +96,7 @@ components:
           items:
             $ref: "#/components/schemas/UsuarioResumenResponse"
 
-    # DTO para crear un grupo
+    # DTO para crear un GRUPO
     CrearGrupoRequest:
       type: object
       required:
@@ -103,7 +113,18 @@ components:
             type: string
           example: ["auth0|507f1f77bcf86cd799439011"]
 
-    # DTO para actualizar un grupo
+    # DTO para iniciar un CHAT DIRECTO
+    IniciarChatDirectoRequest:
+      type: object
+      required:
+        - otroUsuarioId
+      properties:
+        otroUsuarioId:
+          type: string
+          description: "ID del otro usuario para el chat 1-a-1."
+          example: "auth0|507f1f77bcf86cd799439011"
+
+    # DTO para actualizar un GRUPO
     ActualizarGrupoRequest:
       type: object
       properties:
@@ -137,36 +158,38 @@ components:
       description: "Token JWT provisto por Auth0."
 
 # 5. Seguridad Global
-# Aplica 'auth0Jwt' a TODOS los endpoints de esta API.
 security:
   - auth0Jwt: []
 
 # 6. Paths (Endpoints)
-# Todos los paths son relativos a la URL del servidor: /api/v1/grupo
+# Todos los paths son relativos a la URL del servidor: /api/v1/conversacion
 paths:
   # --- Path: / ---
   /:
     get:
       tags:
-        - Grupo
-      summary: "Listar los grupos del usuario actual."
-      operationId: ListarGruposUsuario
+        - Conversacion
+      summary: "Listar las conversaciones (grupos y DMs) del usuario."
+      operationId: ListarConversacionesUsuario
       responses:
         "200":
-          description: "Lista de grupos a los que pertenece el usuario."
+          description: "Lista de conversaciones a las que pertenece el usuario."
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/GrupoDetalleResponse"
+                  $ref: "#/components/schemas/ConversacionResponse"
         "401":
           description: "No autorizado."
 
+  # --- Path: /grupo ---
+  /grupo:
     post:
       tags:
-        - Grupo
+        - Conversacion
       summary: "Crear un nuevo grupo."
+      description: "Crea una conversación de tipo 'grupo'."
       operationId: CrearGrupo
       requestBody:
         description: Datos para el nuevo grupo.
@@ -181,53 +204,83 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GrupoDetalleResponse"
+                $ref: "#/components/schemas/ConversacionResponse"
         "400":
-          description: "Solicitud inválida (ej. nombre faltante)."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: "No autorizado."
 
-  # --- Path: /{grupoId} ---
-  /{grupoId}:
+  # --- Path: /directo ---
+  /directo:
+    post:
+      tags:
+        - Conversacion
+      summary: "Iniciar o recuperar un chat directo (1-a-1)."
+      description: "Busca una conversación 'directo' existente con el otro usuario. Si no existe, la crea."
+      operationId: IniciarChatDirecto
+      requestBody:
+        description: El otro usuario con el que se quiere chatear.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IniciarChatDirectoRequest"
+      responses:
+        "200":
+          description: "Conversación directa recuperada."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversacionResponse"
+        "201":
+          description: "Conversación directa creada."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversacionResponse"
+        "401":
+          description: "No autorizado."
+        "404":
+          description: "El 'otroUsuarioId' no fue encontrado."
+
+  # --- Path: /{conversacionId} ---
+  /{conversacionId}:
     parameters:
-      - name: grupoId
+      - name: conversacionId
         in: path
         required: true
-        description: El ID del grupo.
+        description: El ID de la conversación.
         schema:
           type: string
           format: uuid
 
     get:
       tags:
-        - Grupo
-      summary: "Obtener detalles de un grupo específico."
-      operationId: ObtenerGrupoPorId
+        - Conversacion
+      summary: "Obtener detalles de una conversación (grupo o DM)."
+      operationId: ObtenerConversacionPorId
       responses:
         "200":
-          description: "Detalles del grupo."
+          description: "Detalles de la conversación."
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GrupoDetalleResponse"
+                $ref: "#/components/schemas/ConversacionResponse"
         "401":
           description: "No autorizado."
         "403":
           description: "Acceso denegado (no eres miembro)."
         "404":
-          description: "Grupo no encontrado."
+          description: "Conversación no encontrada."
 
-    patch:
+    put:
       tags:
-        - Grupo
-      summary: "Actualizar un grupo (ej. cambiar nombre)."
-      operationId: ActualizarGrupo
+        - Conversacion
+      summary: "Actualizar una conversación (ej. cambiar nombre de grupo)."
+      description: "Solo aplicable a conversaciones tipo 'grupo'."
+      operationId: ActualizarConversacion
       requestBody:
-        description: Campos a actualizar en el grupo.
+        description: Campos a actualizar en la conversación.
         required: true
         content:
           application/json:
@@ -235,40 +288,40 @@ paths:
               $ref: "#/components/schemas/ActualizarGrupoRequest"
       responses:
         "200":
-          description: "Grupo actualizado."
+          description: "Conversación actualizada."
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GrupoDetalleResponse"
+                $ref: "#/components/schemas/ConversacionResponse"
         "401":
           description: "No autorizado."
         "403":
-          description: "Acceso denegado (no eres admin del grupo)."
+          description: "Acceso denegado (no eres admin o no es un grupo)."
         "404":
-          description: "Grupo no encontrado."
+          description: "Conversación no encontrada."
 
     delete:
       tags:
-        - Grupo
-      summary: "Eliminar un grupo."
-      operationId: EliminarGrupo
+        - Conversacion
+      summary: "Eliminar o abandonar una conversación."
+      operationId: EliminarConversacion
       responses:
         "204":
-          description: "Grupo eliminado exitosamente (Sin contenido)."
+          description: "Conversación eliminada/abandonada (Sin contenido)."
         "401":
           description: "No autorizado."
         "403":
-          description: "Acceso denegado (no eres admin del grupo)."
+          description: "Acceso denegado."
         "404":
-          description: "Grupo no encontrado."
+          description: "Conversación no encontrada."
 
-  # --- Path: /{grupoId}/miembros ---
-  /{grupoId}/miembros:
+  # --- Path: /{conversacionId}/miembros ---
+  /{conversacionId}/miembros:
     parameters:
-      - name: grupoId
+      - name: conversacionId
         in: path
         required: true
-        description: El ID del grupo.
+        description: El ID de la conversación.
         schema:
           type: string
           format: uuid
@@ -276,11 +329,11 @@ paths:
     get:
       tags:
         - Miembro
-      summary: "Listar los miembros de un grupo."
-      operationId: ListarMiembrosGrupo
+      summary: "Listar los miembros de una conversación."
+      operationId: ListarMiembros
       responses:
         "200":
-          description: "Lista de miembros del grupo."
+          description: "Lista de miembros."
           content:
             application/json:
               schema:
@@ -292,12 +345,13 @@ paths:
         "403":
           description: "Acceso denegado (no eres miembro)."
         "404":
-          description: "Grupo no encontrado."
+          description: "Conversación no encontrada."
 
     post:
       tags:
         - Miembro
       summary: "Agregar un miembro a un grupo."
+      description: "Solo aplicable a conversaciones tipo 'grupo'."
       operationId: AgregarMiembro
       requestBody:
         description: El usuario a agregar.
@@ -307,24 +361,36 @@ paths:
             schema:
               $ref: "#/components/schemas/AgregarMiembroRequest"
       responses:
-        "204":
-          description: "Miembro agregado (Sin contenido)."
+        "200":
+          description: "Miembro agregado exitosamente."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Miembro agregado exitosamente"
+        "400":
+          description: "Error al agregar miembro."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: "No autorizado."
         "403":
-          description: "Acceso denegado (no eres admin del grupo)."
+          description: "Acceso denegado (no eres admin o no es un grupo)."
         "404":
-          description: "Grupo o usuario no encontrado."
-        "409":
-          description: "Conflicto (el usuario ya es miembro)."
+          description: "Conversación o usuario no encontrado."
 
-  # --- Path: /{grupoId}/miembros/{usuarioId} ---
-  /{grupoId}/miembros/{usuarioId}:
+  # --- Path: /{conversacionId}/miembros/{usuarioId} ---
+  /{conversacionId}/miembros/{usuarioId}:
     parameters:
-      - name: grupoId
+      - name: conversacionId
         in: path
         required: true
-        description: El ID del grupo.
+        description: El ID de la conversación.
         schema:
           type: string
           format: uuid
@@ -339,7 +405,8 @@ paths:
     delete:
       tags:
         - Miembro
-      summary: "Quitar un miembro de un grupo."
+      summary: "Quitar un miembro de una conversación."
+      description: "En un grupo, saca al usuario. En un chat directo, es similar a 'abandonar' el chat."
       operationId: QuitarMiembro
       responses:
         "204":
@@ -347,6 +414,6 @@ paths:
         "401":
           description: "No autorizado."
         "403":
-          description: "Acceso denegado (no eres admin del grupo)."
+          description: "Acceso denegado."
         "404":
-          description: "Grupo o miembro no encontrado."
+          description: "Conversación o miembro no encontrado."

@@ -1,4 +1,4 @@
-﻿namespace Grupos.API.DTOs
+﻿namespace Conversaciones.API.DTOs
 {
     public record UsuarioResumenResponse(
         string Id,
