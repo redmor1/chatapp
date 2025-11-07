@@ -58,9 +58,6 @@ public partial class MensajesDbContext : DbContext
             entity.Property(e => e.ConversacionId)
                 .HasMaxLength(255)
                 .HasColumnName("conversacion_id");
-            entity.Property(e => e.ConversacionTipo)
-                .HasColumnType("enum('grupo','directo')")
-                .HasColumnName("conversacion_tipo");
             entity.Property(e => e.FechaCreacion)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp")

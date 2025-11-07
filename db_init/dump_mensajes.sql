@@ -56,7 +56,6 @@ CREATE TABLE `mensajes` (
   `id` char(36) NOT NULL,
   `contenido` text NOT NULL,
   `conversacion_id` varchar(255) NOT NULL,
-  `conversacion_tipo` enum('grupo','directo') NOT NULL,
   `autor_id` varchar(255) NOT NULL,
   `fecha_creacion` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)

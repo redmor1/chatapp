@@ -11,8 +11,6 @@ public partial class Mensaje
 
     public string ConversacionId { get; set; } = null!;
 
-    public string ConversacionTipo { get; set; } = null!;
-
     public string AutorId { get; set; } = null!;
 
     public DateTime? FechaCreacion { get; set; }
