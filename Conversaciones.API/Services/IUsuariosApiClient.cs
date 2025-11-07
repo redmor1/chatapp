@@ -6,5 +6,8 @@ namespace Conversaciones.API.Services
     {
         // Obtiene perfiles de usuario por lote desde Usuarios.API
         Task<List<UsuarioResumenResponse>> GetUsuariosBatchAsync(List<string> usuarioIds);
+        
+        // Verifica si un usuario existe
+        Task<bool> UsuarioExisteAsync(string usuarioId);
     }
 }

@@ -94,6 +94,25 @@ namespace Conversaciones.API.Services
         {
             _logger.LogInformation("Usuario {CreadorId} está creando un grupo llamado {Nombre}", usuarioActualId, request.Nombre);
 
+            // Validar miembros iniciales si los hay
+            if (request.MiembrosIniciales != null && request.MiembrosIniciales.Any())
+            {
+                var miembrosAValidar = request.MiembrosIniciales.Where(m => m != usuarioActualId).ToList();
+                if (miembrosAValidar.Any())
+                {
+                    var usuariosExisten = await _usuariosApiClient.GetUsuariosBatchAsync(miembrosAValidar);
+                    var usuariosExistentes = usuariosExisten.Select(u => u.Id).ToList();
+
+                    var usuariosNoEncontrados = miembrosAValidar.Except(usuariosExistentes).ToList();
+                    if (usuariosNoEncontrados.Any())
+                    {
+                        _logger.LogWarning("Intento de crear grupo con usuarios inexistentes: {UsuarioIds}", 
+                            string.Join(", ", usuariosNoEncontrados));
+                        throw new ArgumentException($"Los siguientes usuarios no existen: {string.Join(", ", usuariosNoEncontrados)}");
+                    }
+                }
+            }
+
             // Crear entidad Conversacion tipo grupo
             var nuevoGrupo = new Conversacion
             {
@@ -171,9 +190,17 @@ namespace Conversaciones.API.Services
             );
         }
 
-        public async Task<ConversacionResponse> IniciarChatDirectoAsync(string usuarioActualId, string otroUsuarioId)
+        public async Task<(ConversacionResponse conversacion, bool esNueva)> IniciarChatDirectoAsync(string usuarioActualId, string otroUsuarioId)
         {
             _logger.LogInformation("Usuario {UsuarioId} iniciando chat directo con {OtroUsuarioId}", usuarioActualId, otroUsuarioId);
+
+            // Validar que el otro usuario existe
+            var usuarioExiste = await _usuariosApiClient.UsuarioExisteAsync(otroUsuarioId);
+            if (!usuarioExiste)
+            {
+                _logger.LogWarning("Intento de iniciar chat con usuario inexistente: {UsuarioId}", otroUsuarioId);
+                throw new ArgumentException($"El usuario {otroUsuarioId} no existe");
+            }
 
             // 1. Buscar conversación directa existente entre los 2 usuarios
             var conversacionExistente = await _context.Conversaciones
@@ -187,7 +214,8 @@ namespace Conversaciones.API.Services
             if (conversacionExistente != null)
             {
                 _logger.LogInformation("Conversación directa ya existe: {ConversacionId}", conversacionExistente.Id);
-                return await MapearConversacionAResponse(conversacionExistente);
+                var response = await MapearConversacionAResponse(conversacionExistente);
+                return (response, false); // No es nueva
             }
 
             // 2. Crear nueva conversación directa
@@ -224,7 +252,8 @@ namespace Conversaciones.API.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Conversación directa creada: {ConversacionId}", nuevaConversacion.Id);
-            return await MapearConversacionAResponse(nuevaConversacion);
+            var nuevaResponse = await MapearConversacionAResponse(nuevaConversacion);
+            return (nuevaResponse, true); // Es nueva
         }
 
         public async Task<ConversacionResponse?> ActualizarGrupoAsync(Guid conversacionId, ActualizarGrupoRequest request, string usuarioId)
@@ -304,6 +333,14 @@ namespace Conversaciones.API.Services
             // Verificar que el usuario no sea ya miembro
             if (conversacion.MiembrosConversacion.Any(m => m.UsuarioId == nuevoUsuarioId))
                 return false;
+
+            // Verificar que el usuario a agregar existe en Usuarios.API
+            var usuarioExiste = await _usuariosApiClient.UsuarioExisteAsync(nuevoUsuarioId);
+            if (!usuarioExiste)
+            {
+                _logger.LogWarning("Intento de agregar usuario inexistente: {UsuarioId}", nuevoUsuarioId);
+                return false;
+            }
 
             _context.MiembrosConversacion.Add(new MiembrosConversacion
             {

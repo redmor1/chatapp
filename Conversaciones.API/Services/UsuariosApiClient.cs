@@ -61,4 +61,24 @@ public class UsuariosApiClient : IUsuariosApiClient
             return new List<UsuarioResumenResponse>();
         }
     }
+
+    public async Task<bool> UsuarioExisteAsync(string usuarioId)
+    {
+        if (string.IsNullOrEmpty(usuarioId))
+        {
+            _logger.LogWarning("UsuarioExisteAsync llamado con ID vacío");
+            return false;
+        }
+
+        try
+        {
+            var usuarios = await GetUsuariosBatchAsync(new List<string> { usuarioId });
+            return usuarios.Any(u => u.Id == usuarioId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al verificar si usuario existe: {UsuarioId}", usuarioId);
+            return false;
+        }
+    }
 }

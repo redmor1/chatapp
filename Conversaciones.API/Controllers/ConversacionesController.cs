@@ -71,8 +71,15 @@ namespace Conversaciones.API.Controllers
                 return Unauthorized();
             }
 
-            var nuevoGrupo = await _conversacionService.CrearGrupoAsync(request, usuarioActualId);
-            return CreatedAtAction(nameof(GetConversacionPorId), new { id = nuevoGrupo.Id }, nuevoGrupo);
+            try
+            {
+                var nuevoGrupo = await _conversacionService.CrearGrupoAsync(request, usuarioActualId);
+                return CreatedAtAction(nameof(GetConversacionPorId), new { id = nuevoGrupo.Id }, nuevoGrupo);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ErrorResponse(null, "Validación fallida", 400, ex.Message));
+            }
         }
 
         // POST: api/v1/conversaciones/directo
@@ -88,8 +95,24 @@ namespace Conversaciones.API.Controllers
                 return Unauthorized();
             }
 
-            var conversacion = await _conversacionService.IniciarChatDirectoAsync(usuarioActualId, request.OtroUsuarioId);
-            return CreatedAtAction(nameof(GetConversacionPorId), new { id = conversacion.Id }, conversacion);
+            try
+            {
+                var (conversacion, esNueva) = await _conversacionService.IniciarChatDirectoAsync(usuarioActualId, request.OtroUsuarioId);
+                
+                // Si es nueva, devolver 201 Created, si ya existía, devolver 200 OK
+                if (esNueva)
+                {
+                    return CreatedAtAction(nameof(GetConversacionPorId), new { id = conversacion.Id }, conversacion);
+                }
+                else
+                {
+                    return Ok(conversacion);
+                }
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new ErrorResponse(null, "Usuario no encontrado", 404, ex.Message));
+            }
         }
 
         // PUT: api/v1/conversaciones/{id}
