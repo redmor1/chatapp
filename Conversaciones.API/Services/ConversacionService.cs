@@ -94,39 +94,6 @@ namespace Conversaciones.API.Services
         {
             _logger.LogInformation("Usuario {CreadorId} está creando un grupo llamado {Nombre}", usuarioActualId, request.Nombre);
 
-            // Validar miembros iniciales si los hay
-            if (request.EmailsMiembros != null && request.EmailsMiembros.Any())
-            {
-                // Eliminar duplicados y el propio email del usuario si lo hubiera (aunque no tenemos el email del usuario actual aquí fácilmente, 
-                // asumimos que el front no manda el propio email, o lo filtramos después al obtener IDs)
-                var emailsAValidar = request.EmailsMiembros.Distinct().ToList();
-                
-                foreach (var email in emailsAValidar)
-                {
-                    var usuario = await _usuariosApiClient.GetUsuarioPorEmailAsync(email);
-                    if (usuario != null)
-                    {
-                        // Evitar agregar al creador dos veces
-                        if (usuario.Id != usuarioActualId)
-                        {
-                            listaMiembros.Add(new MiembrosConversacion
-                            {
-                                Id = Guid.NewGuid(),
-                                ConversacionId = nuevoGrupo.Id,
-                                UsuarioId = usuario.Id,
-                                Rol = "miembro",
-                            });
-                        }
-                    }
-                    else
-                    {
-                         _logger.LogWarning("Usuario con email {Email} no encontrado al crear grupo", email);
-                         // Opcional: Lanzar error si un email no existe
-                         // throw new ArgumentException($"El usuario con email {email} no existe");
-                    }
-                }
-            }
-
             // Crear entidad Conversacion tipo grupo
             var nuevoGrupo = new Conversacion
             {
@@ -150,6 +117,36 @@ namespace Conversaciones.API.Services
                 Rol = "admin",
             };
             listaMiembros.Add(miembroCreador);
+
+            // Validar miembros iniciales si los hay
+            if (request.EmailsMiembros != null && request.EmailsMiembros.Any())
+            {
+                // Eliminar duplicados y el propio email del usuario si lo hubiera
+                var emailsAValidar = request.EmailsMiembros.Distinct().ToList();
+                
+                foreach (var email in emailsAValidar)
+                {
+                    var usuario = await _usuariosApiClient.GetUsuarioPorEmailAsync(email);
+                    if (usuario != null)
+                    {
+                        // Evitar agregar al creador dos veces
+                        if (usuario.Id != usuarioActualId)
+                        {
+                            listaMiembros.Add(new MiembrosConversacion
+                            {
+                                Id = Guid.NewGuid(),
+                                ConversacionId = nuevoGrupo.Id,
+                                UsuarioId = usuario.Id,
+                                Rol = "miembro",
+                            });
+                        }
+                    }
+                    else
+                    {
+                         _logger.LogWarning("Usuario con email {Email} no encontrado al crear grupo", email);
+                    }
+                }
+            }
 
             // (Lógica de agregar miembros movida arriba para resolver emails primero)
 
