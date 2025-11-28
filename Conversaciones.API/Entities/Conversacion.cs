@@ -13,7 +13,7 @@ public partial class Conversacion
 
     public string? AvatarUrl { get; set; }
 
-    public string CreadorId { get; set; } = null!;
+    public string? CreadorId { get; set; }
 
     public DateTime? FechaCreacion { get; set; }
 
