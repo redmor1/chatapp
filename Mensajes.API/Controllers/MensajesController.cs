@@ -136,5 +136,30 @@ namespace Mensajes.API.Controllers
                 return StatusCode(500, "Error interno del servidor");
             }
         }
+        [HttpPatch("conversaciones/{conversacionId}/lectura")]
+        public async Task<ActionResult> MarcarConversacionComoLeida(
+            [FromRoute] string conversacionId)
+        {
+            var usuarioActualId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(usuarioActualId))
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                await _mensajeService.MarcarConversacionComoLeidaAsync(conversacionId, usuarioActualId);
+                return Ok();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marcando conversación como leída");
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
     }
 }

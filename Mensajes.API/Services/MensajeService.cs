@@ -64,7 +64,8 @@ namespace Mensajes.API.Services
                     ConversacionId = m.ConversacionId,
                     AutorId = m.AutorId,
                     Contenido = m.Contenido,
-                    FechaCreacion = m.FechaCreacion ?? DateTime.UtcNow,
+                    Contenido = m.Contenido,
+                    FechaCreacion = DateTime.SpecifyKind(m.FechaCreacion ?? DateTime.UtcNow, DateTimeKind.Utc),
                     LeidoPor = m.AcusesLecturas.Select(a => a.UsuarioId).ToList()
                 })
                 .ToListAsync();
@@ -121,7 +122,8 @@ namespace Mensajes.API.Services
                 ConversacionId = nuevoMensaje.ConversacionId,
                 AutorId = nuevoMensaje.AutorId,
                 Contenido = nuevoMensaje.Contenido,
-                FechaCreacion = nuevoMensaje.FechaCreacion ?? DateTime.UtcNow,
+                Contenido = nuevoMensaje.Contenido,
+                FechaCreacion = DateTime.SpecifyKind(nuevoMensaje.FechaCreacion ?? DateTime.UtcNow, DateTimeKind.Utc),
                 LeidoPor = new List<string>()
             };
 
@@ -215,6 +217,49 @@ namespace Mensajes.API.Services
                 UsuarioId = a.UsuarioId,
                 LeidoEn = a.LeidoEn ?? DateTime.UtcNow
             }).ToList();
+        }
+
+        public async Task MarcarConversacionComoLeidaAsync(string conversacionId, string usuarioActualId)
+        {
+            // 1. Validar membresía (usando el token del contexto actual)
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(token) || !await _conversacionesApiClient.ValidarMembresiaAsync(conversacionId, token))
+            {
+                 throw new UnauthorizedAccessException("No tienes acceso a esta conversación");
+            }
+
+            // 2. Buscar mensajes NO leídos por este usuario en esta conversación
+            // (Mensajes donde NO existe un AcuseLectura para este usuario)
+            var mensajesNoLeidos = await _context.Mensajes
+                .Where(m => m.ConversacionId == conversacionId)
+                .Where(m => !m.AcusesLecturas.Any(a => a.UsuarioId == usuarioActualId))
+                .Select(m => m.Id)
+                .ToListAsync();
+
+            if (!mensajesNoLeidos.Any())
+            {
+                return;
+            }
+
+            // 3. Crear los acuses de lectura masivos
+            var nuevosAcuses = mensajesNoLeidos.Select(id => new AcusesLectura
+            {
+                MensajeId = id,
+                UsuarioId = usuarioActualId,
+                LeidoEn = DateTime.UtcNow
+            }).ToList();
+
+            _context.AcusesLecturas.AddRange(nuevosAcuses);
+            await _context.SaveChangesAsync();
+
+            // 4. Notificar por SignalR (Evento masivo)
+            await _hubContext.Clients.Group(conversacionId).SendAsync("MensajesLeidos", new
+            {
+                ConversacionId = conversacionId,
+                MensajeIds = mensajesNoLeidos, // Lista de IDs que se acaban de leer
+                UsuarioId = usuarioActualId,
+                Fecha = DateTime.UtcNow
+            });
         }
 
         public async Task<bool> EsMiembroDeConversacionAsync(
