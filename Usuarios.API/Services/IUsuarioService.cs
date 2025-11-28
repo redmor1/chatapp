@@ -12,5 +12,7 @@ namespace Usuarios.API.Services
         Task<List<UsuarioPerfilResponse>> GetUsuariosBatchAsync(List<string> usuarioIds);
 
         Task SyncUsuarioAsync(SyncUsuarioRequest request);
+
+        Task<UsuarioPerfilResponse?> GetUsuarioPorEmailAsync(string email);
     }
 }

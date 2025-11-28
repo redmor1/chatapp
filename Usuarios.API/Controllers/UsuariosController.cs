@@ -132,5 +132,39 @@ namespace Usuarios.API.Controllers
             await _usuarioService.SyncUsuarioAsync(request);
             return Ok(new { message = "Usuario sincronizado exitosamente" });
         }
+
+        // GET /api/v1/usuario/email/{email}
+        [HttpGet("email/{email}")]
+        [AllowAnonymous] // Requiere API Key
+        public async Task<ActionResult<UsuarioPerfilResponse>> GetUsuarioPorEmail(
+            [FromRoute] string email,
+            [FromHeader(Name = "X-API-Key")] string? apiKey)
+        {
+             // Validar API Key
+            var expectedApiKey = _configuration["Services:InterServiceApiKey"];
+            if (string.IsNullOrEmpty(apiKey) || apiKey != expectedApiKey)
+            {
+                return Unauthorized(new ErrorResponse(
+                    "https://api.chatapp.com/errores/no-autorizado",
+                    "API Key inválida",
+                    401,
+                    "La API Key es requerida para este endpoint."
+                ));
+            }
+
+            var usuario = await _usuarioService.GetUsuarioPorEmailAsync(email);
+            
+            if (usuario == null)
+            {
+                return NotFound(new ErrorResponse(
+                    "https://api.chatapp.com/errores/usuario-no-encontrado",
+                    "Usuario no encontrado",
+                    404,
+                    $"No se encontró ningún usuario con el email {email}"
+                ));
+            }
+
+            return Ok(usuario);
+        }
     }
 }

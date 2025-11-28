@@ -81,4 +81,48 @@ public class UsuariosApiClient : IUsuariosApiClient
             return false;
         }
     }
+
+    public async Task<UsuarioResumenResponse?> GetUsuarioPorEmailAsync(string email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            return null;
+        }
+
+        try
+        {
+            // Obtener y agregar API Key del header
+            var apiKey = _configuration["Services:InterServiceApiKey"];
+            _httpClient.DefaultRequestHeaders.Remove("X-API-Key");
+            _httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+
+            // Asumimos que Usuarios.API tiene un endpoint GET /api/v1/usuario/email/{email}
+            // Si no lo tiene, habrá que crearlo o usar uno de búsqueda
+            var response = await _httpClient.GetAsync($"/api/v1/usuario/email/{email}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error en Usuarios.API buscando email {Email}: {StatusCode} - {Content}", 
+                    email, response.StatusCode, errorContent);
+                return null;
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var usuario = JsonSerializer.Deserialize<UsuarioResumenResponse>(content, 
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            return usuario;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al buscar usuario por email: {Email}", email);
+            return null;
+        }
+    }
 }

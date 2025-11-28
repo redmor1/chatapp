@@ -171,7 +171,7 @@ namespace Conversaciones.API.Controllers
                 return Unauthorized();
             }
 
-            var agregado = await _conversacionService.AgregarMiembroAsync(id, request.UsuarioId, usuarioActualId);
+            var agregado = await _conversacionService.AgregarMiembroAsync(id, request.Email, usuarioActualId);
 
             if (!agregado)
             {

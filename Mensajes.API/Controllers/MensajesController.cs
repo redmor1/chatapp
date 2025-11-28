@@ -34,12 +34,20 @@ namespace Mensajes.API.Controllers
                 return Unauthorized();
             }
 
-            // TODO: Validar que tipo sea "grupo" o "directo"
-            // TODO: Validar que limit <= 100
-            // TODO: Llamar al servicio
-            // TODO: Manejar casos de error (403, 404)
-
-            throw new NotImplementedException();
+            try
+            {
+                var response = await _mensajeService.GetHistorialMensajesAsync(conversacionId, tipo, usuarioActualId, before, limit);
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo mensajes");
+                return StatusCode(500, "Error interno del servidor");
+            }
         }
 
         [HttpPost("conversaciones/{conversacionId}/mensajes")]
@@ -54,12 +62,20 @@ namespace Mensajes.API.Controllers
                 return Unauthorized();
             }
 
-            // TODO: Validar que tipo sea "grupo" o "directo"
-            // TODO: Llamar al servicio
-            // TODO: Retornar 201 Created
-            // TODO: Manejar casos de error (400, 403, 404)
-
-            throw new NotImplementedException();
+            try
+            {
+                var response = await _mensajeService.EnviarMensajeAsync(conversacionId, tipo, request, usuarioActualId);
+                return CreatedAtAction(nameof(GetHistorialMensajes), new { conversacionId = conversacionId, tipo = tipo }, response);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error enviando mensaje");
+                return StatusCode(500, "Error interno del servidor");
+            }
         }
 
 
@@ -73,10 +89,20 @@ namespace Mensajes.API.Controllers
                 return Unauthorized();
             }
 
-            // TODO: Llamar al servicio
-            // TODO: Manejar casos de error (401, 403)
-
-            throw new NotImplementedException();
+            try
+            {
+                var response = await _mensajeService.GetAcusesDeLecturaAsync(mensajeId, usuarioActualId);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo acuses de lectura");
+                return StatusCode(500, "Error interno del servidor");
+            }
         }
 
 
@@ -91,11 +117,24 @@ namespace Mensajes.API.Controllers
                 return Unauthorized();
             }
 
-            // TODO: Llamar al servicio
-            // TODO: Retornar 200 OK
-            // TODO: Manejar casos de error (401, 404)
-
-            throw new NotImplementedException();
+            try
+            {
+                var response = await _mensajeService.MarcarMensajeComoLeidoAsync(mensajeId, usuarioActualId, request);
+                return Ok(response);
+            }
+             catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marcando mensaje como leído");
+                return StatusCode(500, "Error interno del servidor");
+            }
         }
     }
 }

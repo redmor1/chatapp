@@ -1,0 +1,97 @@
+services:
+  # --- Base de Datos MySQL (Un solo servidor para las 3 BDs) ---
+  db-chatapp:
+    image: mysql:8.0
+    container_name: db-chatapp
+    # Las credenciales de ROOT y del USUARIO principal
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_USER: "chatapp_user"
+      MYSQL_PASSWORD: "cassara"
+    ports:
+      - "3306:3306"
+    volumes:
+      # 1. Persistencia de datos
+      - db-data:/var/lib/mysql
+      # 2. Carpeta de inicialización:
+      #    Cargará TODOS los .sql que pongas en ./db_init
+      #    en orden alfabético.
+      - ./db_init/:/docker-entrypoint-initdb.d/
+    networks:
+      - chatapp-network
+    restart: unless-stopped
+
+  # --- API de Usuarios ---
+  usuarios-api:
+    container_name: usuarios-api
+    build:
+      context: .
+      dockerfile: Usuarios.API/Dockerfile
+    ports:
+      - "5260:8080" #
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:8080"
+      # Conexión a su BD específica
+      ConnectionStrings__DatabaseConnection: "Server=db-chatapp;Database=chatapp_usuarios;User=chatapp_user;Password=cassara"
+      # Configuración de Auth0
+      Auth0__Authority: "https://dev-tc6fyvjkcqlxyfv2.us.auth0.com/"
+      Auth0__Audience: "https://api.chatapp.com"
+      Auth0__SyncKey: "B7nzpSW4mU9tEfJHRGX0oeQLs3kiKyh2" # <-- RELLENAR
+      Services__InterServiceApiKey: "super-secret-key-inter-service-2024"
+    networks:
+      - chatapp-network
+    depends_on:
+      - db-chatapp
+
+  # --- API de Conversaciones ---
+  conversaciones-api:
+    container_name: conversaciones-api
+    build:
+      context: .
+      dockerfile: Conversaciones.API/Dockerfile
+    ports:
+      - "5217:8080" #
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:8080"
+      # Conexión a su BD específica
+      ConnectionStrings__DatabaseConnection: "Server=db-chatapp;Database=chatapp_conversaciones;User=chatapp_user;Password=cassara"
+      Auth0__Authority: "https://dev-tc6fyvjkcqlxyfv2.us.auth0.com/"
+      Auth0__Audience: "https://api.chatapp.com"
+      # Comunicación con Usuarios.API dentro de Docker
+      Services__UsuariosApi: "http://usuarios-api:8080"
+      Services__InterServiceApiKey: "super-secret-key-inter-service-2024"
+    networks:
+      - chatapp-network
+    depends_on:
+      - db-chatapp
+
+  # --- API de Mensajes ---
+  mensajes-api:
+    container_name: mensajes-api
+    build:
+      context: .
+      dockerfile: Mensajes.API/Dockerfile
+    ports:
+      - "5233:8080" #
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:8080"
+      # Conexión a su BD específica
+      ConnectionStrings__DatabaseConnection: "Server=db-chatapp;Database=chatapp_mensajes;User=chatapp_user;Password=cassara"
+      Auth0__Authority: "https://dev-tc6fyvjkcqlxyfv2.us.auth0.com/"
+      Auth0__Audience: "https://api.chatapp.com"
+      Services__InterServiceApiKey: "super-secret-key-inter-service-2024"
+      Services__ConversacionesApi: "http://conversaciones-api:8080"
+    networks:
+      - chatapp-network
+    depends_on:
+      - db-chatapp
+
+networks:
+  chatapp-network:
+    driver: bridge
+
+volumes:
+  db-data:

@@ -119,5 +119,21 @@ namespace Usuarios.API.Services
                 usuario.AvatarUrl
             );
         }
+
+        public async Task<UsuarioPerfilResponse?> GetUsuarioPorEmailAsync(string email)
+        {
+            _logger.LogInformation("Buscando usuario por email: {Email}", email);
+
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (usuario == null)
+            {
+                _logger.LogWarning("Usuario no encontrado con email: {Email}", email);
+                return null;
+            }
+
+            return MapToDto(usuario);
+        }
     }
 }

@@ -9,5 +9,8 @@ namespace Conversaciones.API.Services
         
         // Verifica si un usuario existe
         Task<bool> UsuarioExisteAsync(string usuarioId);
+
+        // Obtiene un usuario por email
+        Task<UsuarioResumenResponse?> GetUsuarioPorEmailAsync(string email);
     }
 }

@@ -316,7 +316,7 @@ namespace Conversaciones.API.Services
             return true;
         }
 
-        public async Task<bool> AgregarMiembroAsync(Guid conversacionId, string nuevoUsuarioId, string usuarioQueAgrega)
+        public async Task<bool> AgregarMiembroAsync(Guid conversacionId, string emailUsuario, string usuarioQueAgrega)
         {
             var conversacion = await _context.Conversaciones
                 .Include(c => c.MiembrosConversacion)
@@ -330,23 +330,23 @@ namespace Conversaciones.API.Services
             if (!esAdmin)
                 return false;
 
-            // Verificar que el usuario no sea ya miembro
-            if (conversacion.MiembrosConversacion.Any(m => m.UsuarioId == nuevoUsuarioId))
-                return false;
-
-            // Verificar que el usuario a agregar existe en Usuarios.API
-            var usuarioExiste = await _usuariosApiClient.UsuarioExisteAsync(nuevoUsuarioId);
-            if (!usuarioExiste)
+            // Buscar usuario por email
+            var usuario = await _usuariosApiClient.GetUsuarioPorEmailAsync(emailUsuario);
+            if (usuario == null)
             {
-                _logger.LogWarning("Intento de agregar usuario inexistente: {UsuarioId}", nuevoUsuarioId);
+                _logger.LogWarning("Intento de agregar usuario inexistente por email: {Email}", emailUsuario);
                 return false;
             }
+
+            // Verificar que el usuario no sea ya miembro
+            if (conversacion.MiembrosConversacion.Any(m => m.UsuarioId == usuario.Id))
+                return false;
 
             _context.MiembrosConversacion.Add(new MiembrosConversacion
             {
                 Id = Guid.NewGuid(),
                 ConversacionId = conversacionId,
-                UsuarioId = nuevoUsuarioId,
+                UsuarioId = usuario.Id,
                 Rol = "miembro"
             });
 

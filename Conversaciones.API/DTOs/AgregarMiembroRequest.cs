@@ -6,6 +6,7 @@ namespace Conversaciones.API.DTOs
     public record AgregarMiembroRequest
 (
         [Required]
-        string UsuarioId
+        [EmailAddress]
+        string Email
         );
 }

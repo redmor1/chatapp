@@ -26,28 +26,25 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: "AllowVercelPolicy",
                       policy =>
                       {
-                          policy.SetIsOriginAllowed(origin =>
-                          {
-                              if (string.IsNullOrEmpty(origin)) return false;
-                              
-                              // Comprueba si el origen es tu URL de Vercel O una preview
-                              // (ej. https://chatapp-front-one.vercel.app O https://chatapp-front-one-....vercel.app)
-                              if (origin.StartsWith("https://chatapp-front-one") && origin.EndsWith(".vercel.app"))
-                                  return true;
-                                  
-                              // Permite localhost para desarrollo
-                              if (builder.Environment.IsDevelopment() && origin.StartsWith("http://localhost"))
-                                  return true;
-
-                              return false;
-                          })
+                          policy.SetIsOriginAllowed(origin => true) // Permitir cualquier origen para debugging
                           .AllowAnyHeader()
-                          .AllowAnyMethod();
+                          .AllowAnyMethod()
+                          .AllowCredentials(); // Necesario para SignalR
                       });
 });
 
 
 builder.Services.AddScoped<IMensajeService, MensajeService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<IConversacionesApiClient, ConversacionesApiClient>(client =>
+{
+    var conversacionesApiUrl = builder.Configuration["Services:ConversacionesApi"];
+    // Fallback if config is missing, though it should be there
+    if (string.IsNullOrEmpty(conversacionesApiUrl)) conversacionesApiUrl = "http://localhost:5002"; // Adjust port as needed
+    client.BaseAddress = new Uri(conversacionesApiUrl);
+});
+
+builder.Services.AddSignalR();
 
 // Agregar servicios
 builder.Services.AddAuthorization();
@@ -70,4 +67,5 @@ app.UseCors("AllowVercelPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<Mensajes.API.Hubs.MensajesHub>("/hubs/mensajes");
 app.Run();

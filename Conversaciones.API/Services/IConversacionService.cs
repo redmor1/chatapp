@@ -23,7 +23,7 @@ namespace Conversaciones.API.Services
         Task<bool> EliminarConversacionAsync(Guid conversacionId, string usuarioId);
         
         // Agregar miembro a grupo
-        Task<bool> AgregarMiembroAsync(Guid conversacionId, string nuevoUsuarioId, string usuarioQueAgrega);
+        Task<bool> AgregarMiembroAsync(Guid conversacionId, string emailUsuario, string usuarioQueAgrega);
         
         // Quitar miembro de conversación
         Task<bool> QuitarMiembroAsync(Guid conversacionId, string usuarioIdAQuitar, string usuarioQueQuita);
