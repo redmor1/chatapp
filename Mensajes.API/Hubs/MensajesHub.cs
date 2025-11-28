@@ -4,6 +4,16 @@ namespace Mensajes.API.Hubs
 {
     public class MensajesHub : Hub
     {
+        public override async Task OnConnectedAsync()
+        {
+            var usuarioId = Context.UserIdentifier;
+            if (!string.IsNullOrEmpty(usuarioId))
+            {
+                // Unir al usuario a un grupo con su propio ID para notificaciones personales
+                await Groups.AddToGroupAsync(Context.ConnectionId, usuarioId);
+            }
+            await base.OnConnectedAsync();
+        }
         public async Task UnirseAConversacion(string conversacionId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, conversacionId);

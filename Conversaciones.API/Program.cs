@@ -41,6 +41,15 @@ builder.Services.AddHttpClient<IUsuariosApiClient, UsuariosApiClient>(client =>
     client.BaseAddress = new Uri(usuariosApiUrl!);
 });
 
+// Configurar HttpClient para Mensajes.API (Notificaciones)
+builder.Services.AddHttpClient<IMensajesApiClient, MensajesApiClient>(client =>
+{
+    var mensajesApiUrl = builder.Configuration["Services:MensajesApi"];
+    // Fallback por si no está en config
+    if (string.IsNullOrEmpty(mensajesApiUrl)) mensajesApiUrl = "http://mensajes-api:8080";
+    client.BaseAddress = new Uri(mensajesApiUrl);
+});
+
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

@@ -10,13 +10,15 @@ namespace Conversaciones.API.Services
         private readonly ConversacionesDbContext _context;
         private readonly ILogger<ConversacionService> _logger;
         private readonly IUsuariosApiClient _usuariosApiClient;
+        private readonly IMensajesApiClient _mensajesApiClient;
 
 
-        public ConversacionService(ConversacionesDbContext context, ILogger<ConversacionService> logger, IUsuariosApiClient usuariosApiClient)
+        public ConversacionService(ConversacionesDbContext context, ILogger<ConversacionService> logger, IUsuariosApiClient usuariosApiClient, IMensajesApiClient mensajesApiClient)
         {
             _context = context;
             _logger = logger;
             _usuariosApiClient = usuariosApiClient;
+            _mensajesApiClient = mensajesApiClient;
         }
 
         public async Task<List<ConversacionResponse>> GetConversacionesParaUsuarioAsync(string usuarioActualId)
@@ -352,6 +354,10 @@ namespace Conversaciones.API.Services
             });
 
             await _context.SaveChangesAsync();
+
+            // Notificar a Mensajes.API para SignalR
+            await _mensajesApiClient.NotificarCambioMembresiaAsync("Agregar", conversacionId.ToString(), usuario.Id, conversacion.Nombre);
+
             return true;
         }
 
@@ -378,6 +384,10 @@ namespace Conversaciones.API.Services
 
             _context.MiembrosConversacion.Remove(miembro);
             await _context.SaveChangesAsync();
+
+            // Notificar a Mensajes.API para SignalR
+            await _mensajesApiClient.NotificarCambioMembresiaAsync("Quitar", conversacionId.ToString(), usuarioIdAQuitar, conversacion.Nombre);
+
             return true;
         }
 

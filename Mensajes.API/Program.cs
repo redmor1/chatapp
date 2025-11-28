@@ -18,6 +18,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.Authority = builder.Configuration["Auth0:Authority"];
         options.Audience = builder.Configuration["Auth0:Audience"];
+        
+        // Configuración para leer el token desde la query string (necesario para SignalR JS Client)
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                // Si la petición es para el Hub...
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/hubs/mensajes")))
+                {
+                    // Leer el token de la query string
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 // Añadir la política de CORS
