@@ -14,7 +14,7 @@ namespace Conversaciones.API.Services
         Task<ConversacionResponse> CrearGrupoAsync(CrearGrupoRequest request, string creadorId);
         
         // Iniciar o recuperar chat directo
-        Task<(ConversacionResponse conversacion, bool esNueva)> IniciarChatDirectoAsync(string usuarioActualId, string otroUsuarioId);
+        Task<(ConversacionResponse conversacion, bool esNueva)> IniciarChatDirectoAsync(string usuarioActualId, string emailOtroUsuario);
         
         // Actualizar grupo (nombre, avatar)
         Task<ConversacionResponse?> ActualizarGrupoAsync(Guid conversacionId, ActualizarGrupoRequest request, string usuarioId);

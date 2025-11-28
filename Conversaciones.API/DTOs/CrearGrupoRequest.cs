@@ -6,6 +6,6 @@ namespace Conversaciones.API.DTOs
     (
         [Required]
         string Nombre,
-        List<string>? MiembrosIniciales // Usamos 'string' para los IDs de Auth0
+        List<string>? EmailsMiembros // Lista de emails en lugar de IDs
     );
 }

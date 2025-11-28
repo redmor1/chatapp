@@ -95,20 +95,34 @@ namespace Conversaciones.API.Services
             _logger.LogInformation("Usuario {CreadorId} está creando un grupo llamado {Nombre}", usuarioActualId, request.Nombre);
 
             // Validar miembros iniciales si los hay
-            if (request.MiembrosIniciales != null && request.MiembrosIniciales.Any())
+            if (request.EmailsMiembros != null && request.EmailsMiembros.Any())
             {
-                var miembrosAValidar = request.MiembrosIniciales.Where(m => m != usuarioActualId).ToList();
-                if (miembrosAValidar.Any())
+                // Eliminar duplicados y el propio email del usuario si lo hubiera (aunque no tenemos el email del usuario actual aquí fácilmente, 
+                // asumimos que el front no manda el propio email, o lo filtramos después al obtener IDs)
+                var emailsAValidar = request.EmailsMiembros.Distinct().ToList();
+                
+                foreach (var email in emailsAValidar)
                 {
-                    var usuariosExisten = await _usuariosApiClient.GetUsuariosBatchAsync(miembrosAValidar);
-                    var usuariosExistentes = usuariosExisten.Select(u => u.Id).ToList();
-
-                    var usuariosNoEncontrados = miembrosAValidar.Except(usuariosExistentes).ToList();
-                    if (usuariosNoEncontrados.Any())
+                    var usuario = await _usuariosApiClient.GetUsuarioPorEmailAsync(email);
+                    if (usuario != null)
                     {
-                        _logger.LogWarning("Intento de crear grupo con usuarios inexistentes: {UsuarioIds}", 
-                            string.Join(", ", usuariosNoEncontrados));
-                        throw new ArgumentException($"Los siguientes usuarios no existen: {string.Join(", ", usuariosNoEncontrados)}");
+                        // Evitar agregar al creador dos veces
+                        if (usuario.Id != usuarioActualId)
+                        {
+                            listaMiembros.Add(new MiembrosConversacion
+                            {
+                                Id = Guid.NewGuid(),
+                                ConversacionId = nuevoGrupo.Id,
+                                UsuarioId = usuario.Id,
+                                Rol = "miembro",
+                            });
+                        }
+                    }
+                    else
+                    {
+                         _logger.LogWarning("Usuario con email {Email} no encontrado al crear grupo", email);
+                         // Opcional: Lanzar error si un email no existe
+                         // throw new ArgumentException($"El usuario con email {email} no existe");
                     }
                 }
             }
@@ -137,24 +151,7 @@ namespace Conversaciones.API.Services
             };
             listaMiembros.Add(miembroCreador);
 
-            // Agregar a los otros miembros iniciales (si los hay)
-            if (request.MiembrosIniciales != null && request.MiembrosIniciales.Any())
-            {
-                foreach (var miembroId in request.MiembrosIniciales)
-                {
-                    // Evitar agregar al creador dos veces
-                    if (miembroId != usuarioActualId)
-                    {
-                        listaMiembros.Add(new MiembrosConversacion
-                        {
-                            Id = Guid.NewGuid(),
-                            ConversacionId = nuevoGrupo.Id,
-                            UsuarioId = miembroId,
-                            Rol = "miembro",
-                        });
-                    }
-                }
-            }
+            // (Lógica de agregar miembros movida arriba para resolver emails primero)
 
             // Agregar todo a la BD en una transacción
             await _context.Conversaciones.AddAsync(nuevoGrupo);
@@ -190,19 +187,26 @@ namespace Conversaciones.API.Services
             );
         }
 
-        public async Task<(ConversacionResponse conversacion, bool esNueva)> IniciarChatDirectoAsync(string usuarioActualId, string otroUsuarioId)
+        public async Task<(ConversacionResponse conversacion, bool esNueva)> IniciarChatDirectoAsync(string usuarioActualId, string emailOtroUsuario)
         {
-            _logger.LogInformation("Usuario {UsuarioId} iniciando chat directo con {OtroUsuarioId}", usuarioActualId, otroUsuarioId);
+            _logger.LogInformation("Usuario {UsuarioId} iniciando chat directo con email {Email}", usuarioActualId, emailOtroUsuario);
 
-            // Validar que el otro usuario existe
-            var usuarioExiste = await _usuariosApiClient.UsuarioExisteAsync(otroUsuarioId);
-            if (!usuarioExiste)
+            // 1. Resolver Email a ID
+            var otroUsuario = await _usuariosApiClient.GetUsuarioPorEmailAsync(emailOtroUsuario);
+            if (otroUsuario == null)
             {
-                _logger.LogWarning("Intento de iniciar chat con usuario inexistente: {UsuarioId}", otroUsuarioId);
-                throw new ArgumentException($"El usuario {otroUsuarioId} no existe");
+                 _logger.LogWarning("Intento de iniciar chat con email inexistente: {Email}", emailOtroUsuario);
+                throw new ArgumentException($"El usuario con email {emailOtroUsuario} no existe");
+            }
+            
+            var otroUsuarioId = otroUsuario.Id;
+
+            if (otroUsuarioId == usuarioActualId)
+            {
+                throw new ArgumentException("No puedes iniciar un chat contigo mismo");
             }
 
-            // 1. Buscar conversación directa existente entre los 2 usuarios
+            // 2. Buscar conversación directa existente entre los 2 usuarios
             var conversacionExistente = await _context.Conversaciones
                 .Include(c => c.MiembrosConversacion)
                 .Where(c => c.Tipo == "directo")

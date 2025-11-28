@@ -1,5 +1,7 @@
 namespace Conversaciones.API.DTOs;
 
 public record IniciarChatDirectoRequest(
-    string OtroUsuarioId
+    [Required]
+    [EmailAddress]
+    string EmailUsuario
 );

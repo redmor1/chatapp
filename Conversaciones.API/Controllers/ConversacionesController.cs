@@ -88,7 +88,7 @@ namespace Conversaciones.API.Controllers
         public async Task<ActionResult<ConversacionResponse>> IniciarChatDirecto([FromBody] IniciarChatDirectoRequest request)
         {
             var usuarioActualId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("Usuario {Id} está iniciando chat directo con {OtroUsuarioId}", usuarioActualId, request.OtroUsuarioId);
+            _logger.LogInformation("Usuario {Id} está iniciando chat directo con {Email}", usuarioActualId, request.EmailUsuario);
 
             if (string.IsNullOrEmpty(usuarioActualId))
             {
@@ -97,7 +97,7 @@ namespace Conversaciones.API.Controllers
 
             try
             {
-                var (conversacion, esNueva) = await _conversacionService.IniciarChatDirectoAsync(usuarioActualId, request.OtroUsuarioId);
+                var (conversacion, esNueva) = await _conversacionService.IniciarChatDirectoAsync(usuarioActualId, request.EmailUsuario);
                 
                 // Si es nueva, devolver 201 Created, si ya existía, devolver 200 OK
                 if (esNueva)
