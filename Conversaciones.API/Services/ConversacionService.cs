@@ -226,7 +226,7 @@ namespace Conversaciones.API.Services
                 Tipo = "directo",
                 Nombre = null,
                 AvatarUrl = null,
-                CreadorId = usuarioActualId,
+                CreadorId = null, // En directos, el creador debe ser null por constraint de BD
                 FechaCreacion = DateTime.UtcNow
             };
 
