@@ -104,7 +104,7 @@ namespace Conversaciones.API.Services
                 Nombre = request.Nombre,
                 CreadorId = usuarioActualId,
                 FechaCreacion = DateTime.UtcNow,
-                AvatarUrl = null
+                AvatarUrl = request.AvatarUrl,
             };
 
             // Preparar la lista de miembros
