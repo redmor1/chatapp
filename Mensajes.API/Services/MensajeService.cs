@@ -64,7 +64,6 @@ namespace Mensajes.API.Services
                     ConversacionId = m.ConversacionId,
                     AutorId = m.AutorId,
                     Contenido = m.Contenido,
-                    Contenido = m.Contenido,
                     FechaCreacion = DateTime.SpecifyKind(m.FechaCreacion ?? DateTime.UtcNow, DateTimeKind.Utc),
                     LeidoPor = m.AcusesLecturas.Select(a => a.UsuarioId).ToList()
                 })
@@ -121,7 +120,6 @@ namespace Mensajes.API.Services
                 Id = nuevoMensaje.Id,
                 ConversacionId = nuevoMensaje.ConversacionId,
                 AutorId = nuevoMensaje.AutorId,
-                Contenido = nuevoMensaje.Contenido,
                 Contenido = nuevoMensaje.Contenido,
                 FechaCreacion = DateTime.SpecifyKind(nuevoMensaje.FechaCreacion ?? DateTime.UtcNow, DateTimeKind.Utc),
                 LeidoPor = new List<string>()
